@@ -50,7 +50,7 @@ const config: Config = {
     ],
   ],
 
-  plugins: ['./plugins/disable-webpackbar.js'],
+  plugins: [],
 
   themeConfig: {
     image: 'img/social-card.png',

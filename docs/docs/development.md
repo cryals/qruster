@@ -1,447 +1,524 @@
 ---
-sidebar_position: 2
+sidebar_position: 5
 ---
+
 # Development Guide
 
-## Project Architecture
+This guide will help you set up a development environment and contribute to Media Downloader.
 
-Media Downloader follows a clean architecture pattern with clear separation between layers.
+## Prerequisites
 
-## Backend Architecture (Rust)
+- **Rust** 1.77+ with Cargo
+- **Node.js** 20+ with npm
+- **FFmpeg** installed and in PATH
+- **yt-dlp** installed and in PATH
+- **Git** for version control
 
-### Core Components
+## Getting Started
 
-**Extractors Layer**
-The extractor system is the heart of the application. Each platform has its own extractor implementing the `MediaExtractor` trait.
+### 1. Clone the Repository
 
+```bash
+git clone https://github.com/cryals/qruster.git
+cd qruster
+```
+
+### 2. Backend Setup
+
+```bash
+cd backend
+
+# Install dependencies and build
+cargo build
+
+# Run in development mode with hot reload
+cargo watch -x run
+
+# Or run directly
+cargo run
+```
+
+Backend will start on `http://localhost:8080`
+
+### 3. Frontend Setup
+
+```bash
+cd frontend
+
+# Install dependencies
+npm install
+
+# Run development server with hot reload
+npm run dev
+
+# Build for production
+npm run build
+```
+
+Frontend will start on `http://localhost:3000`
+
+## Project Structure
+
+```
+qruster/
+├── backend/              # Rust backend
+│   ├── src/
+│   │   ├── main.rs      # Entry point
+│   │   ├── handlers/    # HTTP handlers
+│   │   ├── extractors/  # Platform extractors
+│   │   └── services/    # Business logic
+│   ├── Cargo.toml       # Rust dependencies
+│   └── Dockerfile       # Backend container
+│
+├── frontend/            # React frontend
+│   ├── src/
+│   │   ├── App.tsx      # Main component
+│   │   ├── components/  # React components
+│   │   ├── services/    # API clients
+│   │   └── theme/       # MUI theme
+│   ├── package.json     # Node dependencies
+│   └── Dockerfile       # Frontend container
+│
+├── docs/                # Docusaurus documentation
+│   ├── docs/            # English docs
+│   ├── i18n/ru/         # Russian docs
+│   └── docusaurus.config.ts
+│
+├── scripts/             # Setup and run scripts
+│   ├── setup.sh
+│   ├── setup.bat
+│   ├── run.sh
+│   └── run.bat
+│
+├── docker-compose.yml   # Docker orchestration
+├── Caddyfile           # Reverse proxy config
+└── README.md           # Project overview
+```
+
+## Development Workflow
+
+### Backend Development
+
+**Running Tests:**
+```bash
+cd backend
+cargo test
+```
+
+**Linting:**
+```bash
+cargo clippy -- -D warnings
+```
+
+**Formatting:**
+```bash
+cargo fmt
+```
+
+**Adding a New Platform Extractor:**
+
+1. Create a new file in `backend/src/extractors/`:
 ```rust
-pub trait MediaExtractor: Send + Sync {
-    fn detect(&self, url: &str) -> bool;
-    async fn extract_info(&self, url: &str) -> Result<MediaInfo>;
-    async fn get_download_url(&self, url: &str, format_id: &str) -> Result<String>;
+// backend/src/extractors/newplatform.rs
+use super::{MediaExtractor, MediaInfo, Format};
+use anyhow::Result;
+
+pub struct NewPlatformExtractor;
+
+impl MediaExtractor for NewPlatformExtractor {
+    async fn extract(&self, url: &str) -> Result<MediaInfo> {
+        // Implementation
+        todo!()
+    }
+
+    fn supports(&self, url: &str) -> bool {
+        url.contains("newplatform.com")
+    }
 }
 ```
 
-How it works:
-- `detect()` checks if URL matches the platform pattern
-- `extract_info()` retrieves video/audio metadata
-- `get_download_url()` generates direct download link
-
-**Services Layer**
-Business logic is encapsulated in services:
-
-`YtDlpService` - Wrapper around yt-dlp subprocess
-- Executes yt-dlp commands
-- Parses JSON output
-- Handles errors and retries
-
-`Downloader` - File management service
-- Creates temporary files
-- Manages download lifecycle
-- Cleans up expired files
-
-**Handlers Layer**
-HTTP request handlers using Axum framework:
-- `extract` - Analyzes URL and returns metadata
-- `download` - Initiates download and returns file path
-- `formats` - Lists available formats
-- `health` - Service health check
-
-### Data Flow
-
-```
-User Request → Handler → Extractor → yt-dlp → FFmpeg → File → User
-```
-
-Detailed flow:
-
-**Extract Flow:**
-```
-POST /api/extract
-  ↓
-extract_handler()
-  ↓
-detect_platform(url) - finds matching extractor
-  ↓
-extractor.extract_info(url)
-  ↓
-YtDlpService.extract_info()
-  ↓
-Execute: yt-dlp --dump-json URL
-  ↓
-Parse JSON response
-  ↓
-Return MediaInfo{title, duration, formats[]}
-```
-
-**Download Flow:**
-```
-POST /api/download
-  ↓
-download_handler()
-  ↓
-Downloader.download(url, format, audio_only)
-  ↓
-Generate temp filename: UUID.ext
-  ↓
-YtDlpService.download() or download_audio()
-  ↓
-Execute: yt-dlp -f FORMAT -o PATH URL
-  ↓
-File saved to /tmp/media-downloader/
-  ↓
-Return download URL: /downloads/UUID.ext
-  ↓
-User downloads via ServeDir
-```
-
-### Extractor Implementation
-
-Each extractor follows this pattern:
-
+2. Register in `backend/src/extractors/mod.rs`:
 ```rust
-pub struct YouTubeExtractor;
+mod newplatform;
+pub use newplatform::NewPlatformExtractor;
 
-impl MediaExtractor for YouTubeExtractor {
-    fn detect(&self, url: &str) -> bool {
-        url.contains("youtube.com") || url.contains("youtu.be")
-    }
-
-    async fn extract_info(&self, url: &str) -> Result<MediaInfo> {
-        // Platform-specific logic or fallback to yt-dlp
-        let ytdlp = YtDlpService::new();
-        ytdlp.extract_info(url).await
-    }
-
-    async fn get_download_url(&self, url: &str, format_id: &str) -> Result<String> {
-        // Generate direct download link
-    }
-}
-```
-
-### Error Handling
-
-Errors are handled at multiple levels:
-
-**Service Level:**
-```rust
-pub async fn extract_info(&self, url: &str) -> Result<YtDlpInfo> {
-    let output = TokioCommand::new("yt-dlp")
-        .args(["--dump-json", url])
-        .output()
-        .await
-        .context("Failed to execute yt-dlp")?;
-
-    if !output.status.success() {
-        anyhow::bail!("yt-dlp failed: {}", error);
+// Add to detect_platform function
+pub fn detect_platform(url: &str) -> Box<dyn MediaExtractor> {
+    // ... existing platforms
+    if NewPlatformExtractor.supports(url) {
+        return Box::new(NewPlatformExtractor);
     }
     // ...
 }
 ```
 
-**Handler Level:**
-```rust
-match downloader.download(url, format).await {
-    Ok(filepath) => Json(DownloadResponse { ... }),
-    Err(e) => ErrorResponse {
-        error: format!("Download failed: {}", e)
-    }.into_response()
+### Frontend Development
+
+**Running Tests:**
+```bash
+cd frontend
+npm test
+```
+
+**Linting:**
+```bash
+npm run lint
+```
+
+**Type Checking:**
+```bash
+npm run type-check
+```
+
+**Adding a New Component:**
+
+1. Create component file:
+```tsx
+// frontend/src/components/NewComponent.tsx
+import React from 'react';
+import { Box } from '@mui/material';
+
+interface NewComponentProps {
+  // props
 }
-```
 
-### Concurrency Model
-
-The backend uses Tokio for async operations:
-
-- Each request runs in its own task
-- yt-dlp subprocess runs asynchronously
-- File I/O is non-blocking
-- Multiple downloads can run concurrently
-
-## Frontend Architecture (React)
-
-### Component Structure
-
-```
-App (main container)
-├── URLInput (URL entry and validation)
-├── MediaPreview (displays video/audio info)
-├── FormatSelector (quality and format selection)
-├── DownloadButton (initiates download)
-└── PlatformBadges (shows supported platforms)
-```
-
-### State Management
-
-Uses React hooks for local state:
-
-```typescript
-const [mediaInfo, setMediaInfo] = useState<ExtractResponse | null>(null);
-const [selectedFormat, setSelectedFormat] = useState<string>('');
-const [audioOnly, setAudioOnly] = useState(false);
-```
-
-### API Communication
-
-`api.ts` service handles all backend communication:
-
-```typescript
-export const api = {
-  async extract(url: string): Promise<ExtractResponse> {
-    const response = await axios.post('/api/extract', { url });
-    return response.data;
-  },
-
-  async download(request: DownloadRequest): Promise<DownloadResponse> {
-    const response = await axios.post('/api/download', request);
-    return response.data;
-  }
+export const NewComponent: React.FC<NewComponentProps> = (props) => {
+  return (
+    <Box>
+      {/* component content */}
+    </Box>
+  );
 };
 ```
 
-### Material Design 3 Theme
-
-Custom theme based on M3 specifications:
-
-```typescript
-export const theme = createTheme({
-  colorSchemes: {
-    light: {
-      palette: {
-        primary: { main: '#6750A4' },
-        secondary: { main: '#625B71' },
-      }
-    },
-    dark: {
-      palette: {
-        primary: { main: '#D0BCFF' },
-        secondary: { main: '#CCC2DC' },
-      }
-    }
-  },
-  shape: { borderRadius: 12 },
-  typography: { fontFamily: 'Roboto' }
-});
+2. Export from index:
+```tsx
+// frontend/src/components/index.ts
+export { NewComponent } from './NewComponent';
 ```
 
-## Development Workflow
+## Code Style
 
-### Setting Up Development Environment
+### Rust
 
-```bash
-# Clone repository
-git clone https://github.com/cryals/qruster.git
-cd qruster
+Follow the official [Rust Style Guide](https://doc.rust-lang.org/1.0.0/style/):
 
-# Backend setup
-cd backend
-cargo build
-cargo test
+- Use `snake_case` for functions and variables
+- Use `PascalCase` for types and traits
+- Use 4 spaces for indentation
+- Maximum line length: 100 characters
+- Always use `cargo fmt` before committing
 
-# Frontend setup
-cd ../frontend
-npm install
-npm run dev
-
-# Run both
-cd ..
-./scripts/run.sh  # Choose Development
-```
-
-### Code Style
-
-**Rust:**
-- Follow Rust standard style
-- Run `cargo fmt` before committing
-- Run `cargo clippy` to catch issues
-- Add tests for new features
-
-**TypeScript/React:**
-- Use functional components with hooks
-- Follow ESLint rules
-- Use TypeScript types, avoid `any`
-- Keep components small and focused
-
-### Testing
-
-**Backend:**
-```bash
-cd backend
-cargo test
-cargo clippy
-```
-
-**Frontend:**
-```bash
-cd frontend
-npm run lint
-npm run build
-```
-
-### Adding New Platform
-
-To add support for a new platform:
-
-**Step 1: Create extractor file**
-```bash
-touch backend/src/extractors/newplatform.rs
-```
-
-**Step 2: Implement MediaExtractor**
+**Example:**
 ```rust
-use crate::extractors::{Format, MediaExtractor, MediaInfo};
-use anyhow::Result;
-use async_trait::async_trait;
+pub async fn extract_media_info(url: &str) -> Result<MediaInfo> {
+    let platform = detect_platform(url);
+    let info = platform.extract(url).await?;
+    Ok(info)
+}
+```
 
-pub struct NewPlatformExtractor;
+### TypeScript/React
 
-#[async_trait]
-impl MediaExtractor for NewPlatformExtractor {
-    fn detect(&self, url: &str) -> bool {
-        url.contains("newplatform.com")
-    }
+Follow [Airbnb JavaScript Style Guide](https://github.com/airbnb/javascript):
 
-    async fn extract_info(&self, url: &str) -> Result<MediaInfo> {
-        // Implementation
-    }
+- Use `camelCase` for variables and functions
+- Use `PascalCase` for components and types
+- Use 2 spaces for indentation
+- Use functional components with hooks
+- Always use TypeScript types
 
-    async fn get_download_url(&self, url: &str, format_id: &str) -> Result<String> {
-        // Implementation
+**Example:**
+```tsx
+interface MediaInfo {
+  title: string;
+  duration: number;
+}
+
+export const MediaPreview: React.FC<{ info: MediaInfo }> = ({ info }) => {
+  const [loading, setLoading] = useState(false);
+  
+  return (
+    <Box>
+      <Typography>{info.title}</Typography>
+    </Box>
+  );
+};
+```
+
+## Testing
+
+### Backend Tests
+
+```bash
+# Run all tests
+cargo test
+
+# Run specific test
+cargo test test_youtube_extractor
+
+# Run with output
+cargo test -- --nocapture
+```
+
+**Example Test:**
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_youtube_extractor() {
+        let extractor = YouTubeExtractor;
+        let url = "https://youtube.com/watch?v=dQw4w9WgXcQ";
+        
+        assert!(extractor.supports(url));
+        
+        let result = extractor.extract(url).await;
+        assert!(result.is_ok());
     }
 }
 ```
 
-**Step 3: Register in mod.rs**
-```rust
-pub mod newplatform;
+### Frontend Tests
 
-// In detect_platform():
-Box::new(newplatform::NewPlatformExtractor),
-```
-
-**Step 4: Test**
 ```bash
-cargo test
-# Manual testing with real URLs
+# Run all tests
+npm test
+
+# Run with coverage
+npm test -- --coverage
+
+# Run in watch mode
+npm test -- --watch
 ```
 
-**Step 5: Update documentation**
-- Add to `docs/src/en/platforms.md`
-- Add to `docs/src/ru/platforms.md`
+**Example Test:**
+```tsx
+import { render, screen } from '@testing-library/react';
+import { URLInput } from './URLInput';
 
-### Debugging
+test('renders URL input field', () => {
+  render(<URLInput onSubmit={() => {}} />);
+  const input = screen.getByPlaceholderText(/enter url/i);
+  expect(input).toBeInTheDocument();
+});
+```
 
-**Backend logs:**
+## Debugging
+
+### Backend Debugging
+
+**Enable debug logging:**
 ```bash
 RUST_LOG=debug cargo run
 ```
 
-**Frontend dev tools:**
-- Open browser DevTools
-- Check Network tab for API calls
-- Check Console for errors
-
-### Performance Optimization
-
-**Backend:**
-- Use connection pooling for HTTP requests
-- Cache metadata when possible
-- Implement rate limiting per IP
-- Use streaming for large files
-
-**Frontend:**
-- Lazy load components
-- Optimize bundle size
-- Use React.memo for expensive components
-- Debounce URL input
-
-## Deployment
-
-### Development Deployment
-
+**Using rust-lldb:**
 ```bash
-./scripts/setup.sh  # Choose Development
-./scripts/run.sh
+rust-lldb target/debug/backend
 ```
 
-### Production Deployment
+### Frontend Debugging
 
+**React DevTools:**
+- Install [React Developer Tools](https://react.dev/learn/react-developer-tools)
+- Open browser DevTools → React tab
+
+**Network Debugging:**
+- Open browser DevTools → Network tab
+- Filter by XHR to see API calls
+
+## Documentation
+
+### Backend Documentation
+
+Generate and view Rust docs:
 ```bash
-./scripts/setup.sh  # Choose Production
-# Enter domain when prompted
-./scripts/run.sh
+cargo doc --open
 ```
 
-### Docker Deployment
+### Frontend Documentation
 
-```bash
-docker compose up -d --build
-docker compose logs -f
+The frontend uses JSDoc comments:
+```tsx
+/**
+ * Extract media information from URL
+ * @param url - The media URL
+ * @returns Promise with media info
+ */
+export async function extractMedia(url: string): Promise<MediaInfo> {
+  // ...
+}
 ```
 
-### Monitoring
+### Project Documentation
 
-Check service health:
+Documentation is built with Docusaurus:
+
 ```bash
-curl http://localhost:8080/api/health
+cd docs
+
+# Install dependencies
+npm install
+
+# Start dev server
+npm start
+
+# Build for production
+npm run build
 ```
 
-View logs:
-```bash
-# Development
-tail -f backend.log
+## Git Workflow
 
-# Production
-docker compose logs -f backend
-docker compose logs -f frontend
+### Branch Naming
+
+- `feature/` - New features
+- `fix/` - Bug fixes
+- `docs/` - Documentation updates
+- `refactor/` - Code refactoring
+
+**Examples:**
+- `feature/add-instagram-support`
+- `fix/youtube-extraction-error`
+- `docs/update-api-reference`
+
+### Commit Messages
+
+Follow [Conventional Commits](https://www.conventionalcommits.org/):
+
+```
+<type>(<scope>): <description>
+
+[optional body]
+
+[optional footer]
 ```
 
-## Contributing
+**Types:**
+- `feat` - New feature
+- `fix` - Bug fix
+- `docs` - Documentation
+- `style` - Formatting
+- `refactor` - Code refactoring
+- `test` - Tests
+- `chore` - Maintenance
+
+**Examples:**
+```
+feat(extractors): add Instagram support
+
+fix(download): handle timeout errors properly
+
+docs(api): update endpoint documentation
+```
 
 ### Pull Request Process
 
-- Fork the repository
-- Create feature branch
-- Make changes
-- Run tests
-- Update documentation
-- Submit PR
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Write/update tests
+5. Run linters and tests
+6. Commit with conventional commits
+7. Push to your fork
+8. Open a pull request
 
-### Code Review Checklist
+**PR Template:**
+```markdown
+## Description
+Brief description of changes
 
-- Code follows style guidelines
-- Tests pass
-- Documentation updated
-- No security vulnerabilities
-- Performance considered
-- Error handling implemented
+## Type of Change
+- [ ] Bug fix
+- [ ] New feature
+- [ ] Documentation update
 
-## Troubleshooting
+## Testing
+How to test the changes
 
-### Common Issues
-
-**yt-dlp not found:**
-```bash
-pip install yt-dlp
-# or
-sudo apt install yt-dlp
+## Checklist
+- [ ] Tests pass
+- [ ] Linters pass
+- [ ] Documentation updated
 ```
 
-**FFmpeg not found:**
-```bash
-sudo apt install ffmpeg
-```
+## Common Issues
 
-**Port already in use:**
+### Port Already in Use
+
 ```bash
+# Find process
 lsof -i :8080
+lsof -i :3000
+
+# Kill process
 kill -9 <PID>
 ```
 
-**Rust compilation errors:**
+### Rust Compilation Errors
+
 ```bash
+# Update Rust
+rustup update
+
+# Clean build
 cargo clean
 cargo build
+```
+
+### npm Install Fails
+
+```bash
+# Clear cache
+npm cache clean --force
+
+# Remove node_modules
+rm -rf node_modules package-lock.json
+npm install
+```
+
+## Performance Optimization
+
+### Backend
+
+- Use `cargo build --release` for production
+- Enable LTO in `Cargo.toml`:
+```toml
+[profile.release]
+lto = true
+codegen-units = 1
+```
+
+### Frontend
+
+- Use code splitting
+- Lazy load components
+- Optimize bundle size:
+```bash
+npm run build -- --analyze
+```
+
+## Security
+
+### Backend
+
+- Never log sensitive data
+- Validate all user input
+- Use prepared statements for SQL
+- Keep dependencies updated:
+```bash
+cargo audit
+```
+
+### Frontend
+
+- Sanitize user input
+- Use HTTPS in production
+- Keep dependencies updated:
+```bash
+npm audit
+npm audit fix
 ```
 
 ## Resources
@@ -449,5 +526,10 @@ cargo build
 - [Rust Book](https://doc.rust-lang.org/book/)
 - [Axum Documentation](https://docs.rs/axum/)
 - [React Documentation](https://react.dev/)
-- [Material-UI](https://mui.com/)
-- [yt-dlp](https://github.com/yt-dlp/yt-dlp)
+- [Material-UI Documentation](https://mui.com/)
+- [yt-dlp Documentation](https://github.com/yt-dlp/yt-dlp)
+
+## Getting Help
+
+- Open an issue on [GitHub](https://github.com/cryals/qruster/issues)
+- Check existing issues and discussions

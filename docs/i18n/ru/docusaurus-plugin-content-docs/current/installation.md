@@ -1,265 +1,367 @@
+---
+sidebar_position: 3
+---
+
 # Установка
 
 ## Требования
 
-### Для разработки
+Перед установкой Media Downloader убедитесь, что у вас установлено:
 
-- **Rust** 1.75 или выше
-  - Установка: [rustup.rs](https://rustup.rs/)
-  - Проверка: `rustc --version`
+- **Docker** 20.10+ и **Docker Compose** 2.0+
+- **Git** для клонирования репозитория
+- **Доменное имя** (опционально, для SSL в production)
 
-- **Node.js** 20 или выше
-  - Установка: [nodejs.org](https://nodejs.org/)
-  - Проверка: `node --version`
+### Системные требования
 
-- **FFmpeg**
-  - Linux: `sudo apt install ffmpeg` или `sudo yum install ffmpeg`
-  - macOS: `brew install ffmpeg`
-  - Windows: Скачать с [ffmpeg.org](https://ffmpeg.org/)
-  - Проверка: `ffmpeg -version`
+- **ОС**: Linux, macOS или Windows с WSL2
+- **RAM**: Минимум 2GB, рекомендуется 4GB+
+- **Диск**: Минимум 10GB свободного места
+- **CPU**: Рекомендуется 2+ ядра
 
-- **yt-dlp**
-  - Установка: `pip install yt-dlp` или скачать бинарник
-  - Проверка: `yt-dlp --version`
+## Быстрый старт (Docker)
 
-### Для продакшена
+Самый простой способ запустить Media Downloader - использовать Docker Compose.
 
-- **Docker** 24 или выше
-  - Установка: [docker.com](https://www.docker.com/)
-  - Проверка: `docker --version`
-
-- **Docker Compose** v2
-  - Обычно включен в Docker Desktop
-  - Проверка: `docker compose version`
-
-## Методы установки
-
-### Метод 1: Автоматическая установка (Рекомендуется)
-
-Самый простой способ начать - использовать автоматический скрипт установки.
-
-#### Linux / macOS
+### 1. Клонируйте репозиторий
 
 ```bash
 git clone https://github.com/cryals/qruster.git
 cd qruster
-chmod +x scripts/setup.sh scripts/run.sh
-./scripts/setup.sh
 ```
 
-Скрипт выполнит:
-1. Определение операционной системы
-2. Проверку необходимых зависимостей
-3. Предложение установить недостающие зависимости
-4. Выбор между режимом разработки или продакшена
-5. Настройку окружения
+### 2. Запустите скрипт установки
 
-#### Windows
+**Linux/macOS:**
+```bash
+chmod +x setup.sh
+./setup.sh
+```
 
+**Windows:**
 ```cmd
-git clone https://github.com/cryals/qruster.git
-cd qruster
-scripts\setup.bat
+setup.bat
 ```
 
-### Метод 2: Ручная установка для разработки
+Скрипт установки:
+- Проверит наличие Docker и Docker Compose
+- Создаст необходимые директории
+- Настроит переменные окружения
+- Соберет Docker образы
 
-Если предпочитаете ручную установку:
+### 3. Запустите сервисы
 
+**Режим разработки:**
 ```bash
-# Клонирование репозитория
-git clone https://github.com/cryals/qruster.git
-cd qruster
+./run.sh dev
+```
 
-# Установка зависимостей backend
+**Production режим:**
+```bash
+./run.sh prod
+```
+
+### 4. Откройте приложение
+
+- **Разработка**: http://localhost:3000
+- **Production**: https://yourdomain.com (после настройки SSL)
+
+## Ручная установка
+
+Если вы предпочитаете запускать сервисы вручную без Docker:
+
+### Backend (Rust)
+
+**1. Установите Rust:**
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source $HOME/.cargo/env
+```
+
+**2. Установите зависимости:**
+```bash
+# Ubuntu/Debian
+sudo apt install -y build-essential pkg-config libssl-dev ffmpeg yt-dlp
+
+# macOS
+brew install ffmpeg yt-dlp
+```
+
+**3. Соберите и запустите:**
+```bash
 cd backend
-cargo build
-cd ..
+cargo build --release
+cargo run --release
+```
 
-# Установка зависимостей frontend
+Backend запустится на `http://localhost:8080`
+
+### Frontend (React)
+
+**1. Установите Node.js:**
+```bash
+# Используя nvm (рекомендуется)
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+nvm install 20
+nvm use 20
+```
+
+**2. Установите зависимости:**
+```bash
 cd frontend
 npm install
-cd ..
 ```
 
-### Метод 3: Docker для продакшена
-
-Для продакшен развертывания с Docker:
-
+**3. Запустите dev сервер:**
 ```bash
-# Клонирование репозитория
-git clone https://github.com/cryals/qruster.git
-cd qruster
-
-# Настройка домена (редактирование Caddyfile)
-nano Caddyfile
-# Замените localhost на ваш домен
-
-# Создание .env файла
-echo "DOMAIN=ваш-домен.com" > .env
-echo "RUST_LOG=info" >> .env
-
-# Запуск сервисов
-docker compose up -d
+npm run dev
 ```
 
-## Конфигурация
+Frontend запустится на `http://localhost:3000`
+
+**4. Сборка для production:**
+```bash
+npm run build
+npm run preview
+```
+
+## Конфигурация Docker Compose
 
 ### Режим разработки
 
-Режим разработки запускает сервисы напрямую на вашей машине:
+```yaml
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./backend:/app
+      - downloads:/tmp/downloads
+    environment:
+      - RUST_LOG=debug
 
-- Backend: `http://localhost:8080`
-- Frontend: `http://localhost:3000`
-- Hot reload включен для обоих сервисов
-- Детальное логирование
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+```
 
-### Режим продакшена
+### Production режим
 
-Режим продакшена использует Docker контейнеры:
+```yaml
+services:
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
 
-- Все сервисы за Caddy reverse proxy
-- Автоматический SSL сертификат через Let's Encrypt
-- Оптимизированные сборки
-- Минимальное логирование
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    environment:
+      - RUST_LOG=info
 
-### Переменные окружения
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+```
 
-Создайте файл `.env` в корне проекта:
+## Настройка SSL (Production)
 
-```env
-# Домен для продакшена (опционально для dev)
-DOMAIN=media.example.com
+### Используя Caddy (Автоматически)
 
-# Уровень логирования
+Отредактируйте `Caddyfile`:
+
+```
+yourdomain.com {
+    reverse_proxy /api/* backend:8080
+    reverse_proxy /* frontend:80
+    
+    tls your-email@example.com
+}
+```
+
+Caddy автоматически получит SSL сертификаты от Let's Encrypt.
+
+### Используя Let's Encrypt (Вручную)
+
+```bash
+# Установите certbot
+sudo apt install certbot
+
+# Получите сертификат
+sudo certbot certonly --standalone -d yourdomain.com
+
+# Сертификаты будут в:
+# /etc/letsencrypt/live/yourdomain.com/
+```
+
+## Переменные окружения
+
+Создайте файл `.env` в корневой директории:
+
+```bash
+# Backend
 RUST_LOG=info
+MAX_FILE_SIZE=2147483648  # 2GB в байтах
+DOWNLOAD_TIMEOUT=300      # 5 минут
+TEMP_DIR=/tmp/downloads
 
-# Директория для скачиваний (опционально)
-DOWNLOAD_DIR=/tmp/media-downloader
+# Frontend
+VITE_API_URL=http://localhost:8080
 
-# Максимальный размер файла в байтах (опционально, по умолчанию 2GB)
-MAX_FILE_SIZE=2147483648
+# Caddy
+DOMAIN=yourdomain.com
+EMAIL=your-email@example.com
 ```
 
-## Проверка
+## Конфигурация портов
 
-После установки проверьте, что все работает:
+Порты по умолчанию:
 
-### Режим разработки
+- **Frontend**: 3000 (dev), 80 (prod)
+- **Backend**: 8080
+- **Caddy**: 80 (HTTP), 443 (HTTPS)
 
-```bash
-./scripts/run.sh
-# Выберите опцию 1 (Development)
+Чтобы изменить порты, отредактируйте `docker-compose.yml`:
+
+```yaml
+services:
+  backend:
+    ports:
+      - "8081:8080"  # Измените 8081 на нужный порт
 ```
-
-Затем откройте:
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:8080/api/health
-
-### Режим продакшена
-
-```bash
-./scripts/run.sh
-# Выберите опцию 2 (Production)
-```
-
-Затем откройте ваш настроенный домен в браузере.
 
 ## Решение проблем
 
-### Порт уже используется
+### Проблемы с Docker
 
-Если порты 3000 или 8080 уже заняты:
-
+**Проблема**: "Cannot connect to Docker daemon"
 ```bash
-# Найти процесс использующий порт
-lsof -i :3000
-lsof -i :8080
+# Запустите Docker сервис
+sudo systemctl start docker
 
-# Завершить процесс
-kill -9 <PID>
+# Добавьте пользователя в группу docker
+sudo usermod -aG docker $USER
+newgrp docker
 ```
 
-### FFmpeg не найден
-
-Убедитесь, что FFmpeg в вашем PATH:
-
+**Проблема**: "Port already in use"
 ```bash
-which ffmpeg
-# Должно вывести: /usr/bin/ffmpeg или похожее
+# Найдите процесс использующий порт
+sudo lsof -i :8080
+
+# Завершите процесс
+sudo kill -9 <PID>
 ```
 
-### yt-dlp не найден
+### Проблемы со сборкой
 
-Установите yt-dlp:
-
+**Проблема**: "Rust compilation failed"
 ```bash
-# Используя pip
-pip install yt-dlp
+# Обновите Rust
+rustup update
 
-# Или скачайте бинарник
+# Очистите сборку
+cd backend
+cargo clean
+cargo build --release
+```
+
+**Проблема**: "npm install failed"
+```bash
+# Очистите npm кэш
+npm cache clean --force
+
+# Удалите node_modules
+rm -rf node_modules package-lock.json
+npm install
+```
+
+### Проблемы во время работы
+
+**Проблема**: "yt-dlp not found"
+```bash
+# Установите yt-dlp
 sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
 sudo chmod a+rx /usr/local/bin/yt-dlp
 ```
 
-### Отказано в доступе к Docker
-
-Добавьте пользователя в группу docker:
-
+**Проблема**: "FFmpeg not found"
 ```bash
-sudo usermod -aG docker $USER
-# Выйдите и войдите обратно
+# Ubuntu/Debian
+sudo apt install ffmpeg
+
+# macOS
+brew install ffmpeg
 ```
-
-### Проблемы с SSL сертификатом
-
-Если Caddy не может получить SSL сертификат:
-
-1. Убедитесь, что порты 80 и 443 открыты
-2. Проверьте, что DNS указывает на ваш сервер
-3. Проверьте логи Caddy: `docker compose logs caddy`
 
 ## Обновление
 
-### Разработка
+### Docker установка
 
 ```bash
-git pull
-cd backend && cargo build
-cd ../frontend && npm install
+git pull origin main
+docker-compose down
+docker-compose build --no-cache
+docker-compose up -d
 ```
 
-### Продакшен
+### Ручная установка
 
 ```bash
-git pull
-docker compose down
-docker compose up -d --build
+git pull origin main
+
+# Обновите backend
+cd backend
+cargo build --release
+
+# Обновите frontend
+cd ../frontend
+npm install
+npm run build
 ```
 
 ## Удаление
 
-### Удаление приложения
+### Docker
 
 ```bash
-# Остановка сервисов
-./scripts/run.sh
-# Выберите опцию 3 (Stop services)
+# Остановите и удалите контейнеры
+docker-compose down
 
-# Удаление файлов
+# Удалите volumes
+docker-compose down -v
+
+# Удалите образы
+docker rmi qruster-backend qruster-frontend
+```
+
+### Ручная установка
+
+```bash
+# Остановите сервисы
+pkill -f "cargo run"
+pkill -f "npm run"
+
+# Удалите файлы
 cd ..
 rm -rf qruster
 ```
 
-### Удаление Docker volumes
-
-```bash
-docker compose down -v
-docker volume prune
-```
-
 ## Следующие шаги
 
-- Прочитайте [Руководство пользователя](usage.md) чтобы узнать как использовать приложение
-- Проверьте [API справочник](api.md) для документации API
-- Смотрите [Руководство разработчика](development.md) для участия в разработке
+- [Настройте платформы](./platforms.md)
+- [Прочитайте API документацию](./api.md)
+- [Руководство по разработке](./development.md)

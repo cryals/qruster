@@ -1,183 +1,393 @@
 ---
-sidebar_position: 5
+sidebar_position: 4
 ---
 
 # API Reference
 
-Complete REST API documentation for Media Downloader.
+Media Downloader provides a RESTful API for extracting media information and downloading files from supported platforms.
 
 ## Base URL
 
-```
-http://localhost:8080/api
-```
+- **Development**: `http://localhost:8080`
+- **Production**: `https://yourdomain.com`
+
+## Authentication
+
+Currently, the API does not require authentication. Rate limiting is applied per IP address.
 
 ## Endpoints
 
-### Extract Media Information
+### Health Check
 
-Extract metadata and available formats from a URL.
+Check if the API is running and get service information.
 
-**Endpoint:** `POST /api/extract`
+**Endpoint**: `GET /api/health`
 
-**Request Body:**
+**Response**:
 ```json
 {
-  "url": "https://youtube.com/watch?v=..."
+  "status": "healthy",
+  "version": "0.1.0",
+  "uptime": 3600
 }
 ```
 
-**Response:**
+**Status Codes**:
+- `200 OK` - Service is healthy
+
+---
+
+### Extract Media Info
+
+Extract metadata and available formats from a media URL.
+
+**Endpoint**: `POST /api/extract`
+
+**Request Body**:
+```json
+{
+  "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+}
+```
+
+**Response**:
 ```json
 {
   "platform": "youtube",
-  "title": "Video Title",
-  "duration": 180,
-  "thumbnail": "https://...",
+  "title": "Rick Astley - Never Gonna Give You Up",
+  "duration": 212,
+  "thumbnail": "https://i.ytimg.com/vi/dQw4w9WgXcQ/maxresdefault.jpg",
   "formats": [
+    {
+      "format_id": "18",
+      "quality": "360p",
+      "ext": "mp4",
+      "filesize": 8234567,
+      "url": null
+    },
     {
       "format_id": "22",
       "quality": "720p",
       "ext": "mp4",
-      "filesize": 52428800
+      "filesize": 24567890,
+      "url": null
+    },
+    {
+      "format_id": "140",
+      "quality": "audio",
+      "ext": "m4a",
+      "filesize": 3456789,
+      "url": null
     }
   ]
 }
 ```
 
+**Parameters**:
+- `url` (string, required) - The media URL to extract information from
+
+**Status Codes**:
+- `200 OK` - Successfully extracted information
+- `400 Bad Request` - Invalid URL or unsupported platform
+- `429 Too Many Requests` - Rate limit exceeded
+- `500 Internal Server Error` - Extraction failed
+
+**Rate Limit**: 10 requests per minute per IP
+
+---
+
 ### Download Media
 
-Initiate a download and get the file URL.
+Download media in the specified format.
 
-**Endpoint:** `POST /api/download`
+**Endpoint**: `POST /api/download`
 
-**Request Body:**
+**Request Body**:
 ```json
 {
-  "url": "https://youtube.com/watch?v=...",
-  "format": "mp4",
-  "quality": "720p",
+  "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+  "format_id": "22",
   "audio_only": false
 }
 ```
 
-**Response:**
+**Response**:
 ```json
 {
-  "download_url": "/downloads/abc123.mp4",
-  "expires_at": "2026-04-09T17:00:00Z"
+  "download_url": "/downloads/a1b2c3d4-e5f6-7890-abcd-ef1234567890.mp4",
+  "filename": "Rick Astley - Never Gonna Give You Up.mp4",
+  "filesize": 24567890
 }
 ```
+
+**Parameters**:
+- `url` (string, required) - The media URL to download
+- `format_id` (string, required) - Format ID from `/api/extract` response
+- `audio_only` (boolean, optional) - Extract audio only (default: false)
+
+**Status Codes**:
+- `200 OK` - Download prepared successfully
+- `400 Bad Request` - Invalid parameters
+- `429 Too Many Requests` - Rate limit exceeded
+- `500 Internal Server Error` - Download failed
+
+**Rate Limit**: 5 requests per minute per IP
+
+**Notes**:
+- The `download_url` is temporary and expires after 1 hour
+- Files are automatically cleaned up after download or expiration
+
+---
 
 ### Get Available Formats
 
-Get all available formats for a URL.
+Get a list of all supported audio and video formats.
 
-**Endpoint:** `GET /api/formats?url=https://...`
+**Endpoint**: `GET /api/formats`
 
-**Response:**
+**Response**:
 ```json
 {
-  "video": ["144p", "360p", "720p", "1080p", "4K"],
-  "audio": ["mp3", "ogg", "wav"],
-  "video_formats": ["mp4", "mkv", "webm"]
+  "audio": [
+    {
+      "ext": "mp3",
+      "description": "MP3 audio format (lossy)",
+      "mime_type": "audio/mpeg"
+    },
+    {
+      "ext": "ogg",
+      "description": "OGG Vorbis audio format (lossy)",
+      "mime_type": "audio/ogg"
+    },
+    {
+      "ext": "wav",
+      "description": "WAV audio format (lossless)",
+      "mime_type": "audio/wav"
+    }
+  ],
+  "video": [
+    {
+      "ext": "mp4",
+      "description": "MP4 video format (H.264)",
+      "mime_type": "video/mp4"
+    },
+    {
+      "ext": "mkv",
+      "description": "Matroska video format",
+      "mime_type": "video/x-matroska"
+    },
+    {
+      "ext": "webm",
+      "description": "WebM video format (VP9)",
+      "mime_type": "video/webm"
+    }
+  ]
 }
 ```
 
-### Health Check
+**Status Codes**:
+- `200 OK` - Successfully retrieved formats
 
-Check service health and version.
-
-**Endpoint:** `GET /api/health`
-
-**Response:**
-```json
-{
-  "status": "healthy",
-  "version": "1.0.0",
-  "uptime": 3600
-}
-```
+---
 
 ## Error Responses
 
-All endpoints return errors in this format:
+All error responses follow this format:
 
 ```json
 {
-  "error": "Error message description"
+  "error": "Error message describing what went wrong"
 }
 ```
 
-**HTTP Status Codes:**
-- `200` - Success
-- `400` - Bad Request (invalid URL, missing parameters)
-- `404` - Not Found (unsupported platform)
-- `429` - Too Many Requests (rate limit exceeded)
-- `500` - Internal Server Error
+### Common Errors
 
-## Rate Limits
+**Invalid URL**:
+```json
+{
+  "error": "Invalid URL format"
+}
+```
 
-- Extract: 10 requests per minute per IP
-- Download: 5 requests per minute per IP
-- Total: 100 requests per hour per IP
+**Unsupported Platform**:
+```json
+{
+  "error": "Platform not supported"
+}
+```
+
+**Rate Limit Exceeded**:
+```json
+{
+  "error": "Rate limit exceeded. Please try again later."
+}
+```
+
+**Extraction Failed**:
+```json
+{
+  "error": "Failed to extract media information"
+}
+```
+
+**Download Failed**:
+```json
+{
+  "error": "Failed to download media"
+}
+```
+
+---
+
+## Rate Limiting
+
+Rate limits are applied per IP address:
+
+| Endpoint | Limit |
+|----------|-------|
+| `/api/extract` | 10 requests/minute |
+| `/api/download` | 5 requests/minute |
+| All endpoints | 100 requests/hour |
+
+When rate limit is exceeded, the API returns:
+- **Status Code**: `429 Too Many Requests`
+- **Headers**: `Retry-After: <seconds>`
+
+---
+
+## CORS
+
+The API supports Cross-Origin Resource Sharing (CORS) with the following configuration:
+
+- **Allowed Origins**: All origins (`*`)
+- **Allowed Methods**: `GET`, `POST`
+- **Allowed Headers**: All headers
+
+For production deployments, it's recommended to restrict allowed origins to your frontend domain.
+
+---
 
 ## Examples
 
-### cURL
-
-```bash
-# Extract info
-curl -X POST http://localhost:8080/api/extract \
-  -H "Content-Type: application/json" \
-  -d '{"url":"https://youtube.com/watch?v=dQw4w9WgXcQ"}'
-
-# Download
-curl -X POST http://localhost:8080/api/download \
-  -H "Content-Type: application/json" \
-  -d '{"url":"https://youtube.com/watch?v=dQw4w9WgXcQ","format":"mp4","audio_only":false}'
-```
-
-### JavaScript
+### JavaScript (Fetch API)
 
 ```javascript
-// Extract info
-const response = await fetch('http://localhost:8080/api/extract', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ url: 'https://youtube.com/watch?v=dQw4w9WgXcQ' })
-});
-const data = await response.json();
+// Extract media info
+async function extractMedia(url) {
+  const response = await fetch('http://localhost:8080/api/extract', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ url }),
+  });
+  
+  if (!response.ok) {
+    throw new Error('Extraction failed');
+  }
+  
+  return await response.json();
+}
 
-// Download
-const downloadResponse = await fetch('http://localhost:8080/api/download', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    url: 'https://youtube.com/watch?v=dQw4w9WgXcQ',
-    format: 'mp4',
-    audio_only: false
-  })
-});
-const downloadData = await downloadResponse.json();
+// Download media
+async function downloadMedia(url, formatId, audioOnly = false) {
+  const response = await fetch('http://localhost:8080/api/download', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      url,
+      format_id: formatId,
+      audio_only: audioOnly,
+    }),
+  });
+  
+  if (!response.ok) {
+    throw new Error('Download failed');
+  }
+  
+  const data = await response.json();
+  window.location.href = `http://localhost:8080${data.download_url}`;
+}
 ```
 
-### Python
+### Python (requests)
 
 ```python
 import requests
 
-# Extract info
-response = requests.post('http://localhost:8080/api/extract', 
-    json={'url': 'https://youtube.com/watch?v=dQw4w9WgXcQ'})
-data = response.json()
+# Extract media info
+def extract_media(url):
+    response = requests.post(
+        'http://localhost:8080/api/extract',
+        json={'url': url}
+    )
+    response.raise_for_status()
+    return response.json()
 
-# Download
-download_response = requests.post('http://localhost:8080/api/download',
-    json={
-        'url': 'https://youtube.com/watch?v=dQw4w9WgXcQ',
-        'format': 'mp4',
-        'audio_only': False
-    })
-download_data = download_response.json()
+# Download media
+def download_media(url, format_id, audio_only=False):
+    response = requests.post(
+        'http://localhost:8080/api/download',
+        json={
+            'url': url,
+            'format_id': format_id,
+            'audio_only': audio_only
+        }
+    )
+    response.raise_for_status()
+    data = response.json()
+    
+    # Download the file
+    file_response = requests.get(
+        f"http://localhost:8080{data['download_url']}"
+    )
+    with open(data['filename'], 'wb') as f:
+        f.write(file_response.content)
 ```
+
+### cURL
+
+```bash
+# Extract media info
+curl -X POST http://localhost:8080/api/extract \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"}'
+
+# Download media
+curl -X POST http://localhost:8080/api/download \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    "format_id": "22",
+    "audio_only": false
+  }'
+```
+
+---
+
+## Supported Platforms
+
+See [Platforms](./platforms.md) for a complete list of supported platforms and their capabilities.
+
+---
+
+## Limitations
+
+- **Maximum file size**: 2GB
+- **Maximum video duration**: 3 hours
+- **Concurrent downloads**: 10 per instance
+- **Temporary file retention**: 1 hour
+
+---
+
+## Changelog
+
+### v0.1.0 (Current)
+
+- Initial API release
+- Support for 20+ platforms
+- Audio and video download
+- Format conversion
+- Rate limiting

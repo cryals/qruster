@@ -1,268 +1,367 @@
 ---
-sidebar_position: 2
+sidebar_position: 3
 ---
+
 # Installation
 
 ## Prerequisites
 
-### For Development
+Before installing Media Downloader, ensure you have the following installed:
 
-- **Rust** 1.75 or higher
-  - Install from [rustup.rs](https://rustup.rs/)
-  - Verify: `rustc --version`
+- **Docker** 20.10+ and **Docker Compose** 2.0+
+- **Git** for cloning the repository
+- **Domain name** (optional, for SSL in production)
 
-- **Node.js** 20 or higher
-  - Install from [nodejs.org](https://nodejs.org/)
-  - Verify: `node --version`
+### System Requirements
 
-- **FFmpeg**
-  - Linux: `sudo apt install ffmpeg` or `sudo yum install ffmpeg`
-  - macOS: `brew install ffmpeg`
-  - Windows: Download from [ffmpeg.org](https://ffmpeg.org/)
-  - Verify: `ffmpeg -version`
+- **OS**: Linux, macOS, or Windows with WSL2
+- **RAM**: Minimum 2GB, recommended 4GB+
+- **Disk**: Minimum 10GB free space
+- **CPU**: 2+ cores recommended
 
-- **yt-dlp**
-  - Install: `pip install yt-dlp` or download binary
-  - Verify: `yt-dlp --version`
+## Quick Start (Docker)
 
-### For Production
+The easiest way to run Media Downloader is using Docker Compose.
 
-- **Docker** 24 or higher
-  - Install from [docker.com](https://www.docker.com/)
-  - Verify: `docker --version`
-
-- **Docker Compose** v2
-  - Usually included with Docker Desktop
-  - Verify: `docker compose version`
-
-## Installation Methods
-
-### Method 1: Automated Setup (Recommended)
-
-The easiest way to get started is using the automated setup script.
-
-#### Linux / macOS
+### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/cryals/qruster.git
 cd qruster
-chmod +x scripts/setup.sh scripts/run.sh
-./scripts/setup.sh
 ```
 
-The script will:
-1. Detect your operating system
-2. Check for required dependencies
-3. Offer to install missing dependencies
-4. Ask you to choose between Development or Production mode
-5. Configure the environment accordingly
+### 2. Run Setup Script
 
-#### Windows
+**Linux/macOS:**
+```bash
+chmod +x setup.sh
+./setup.sh
+```
 
+**Windows:**
 ```cmd
-git clone https://github.com/cryals/qruster.git
-cd qruster
-scripts\setup.bat
+setup.bat
 ```
 
-### Method 2: Manual Development Setup
+The setup script will:
+- Check for Docker and Docker Compose
+- Create necessary directories
+- Set up environment variables
+- Build Docker images
 
-If you prefer manual installation:
+### 3. Start Services
 
+**Development mode:**
 ```bash
-# Clone repository
-git clone https://github.com/cryals/qruster.git
-cd qruster
+./run.sh dev
+```
 
-# Install backend dependencies
+**Production mode:**
+```bash
+./run.sh prod
+```
+
+### 4. Access the Application
+
+- **Development**: http://localhost:3000
+- **Production**: https://yourdomain.com (after SSL setup)
+
+## Manual Installation
+
+If you prefer to run services manually without Docker:
+
+### Backend (Rust)
+
+**1. Install Rust:**
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source $HOME/.cargo/env
+```
+
+**2. Install Dependencies:**
+```bash
+# Ubuntu/Debian
+sudo apt install -y build-essential pkg-config libssl-dev ffmpeg yt-dlp
+
+# macOS
+brew install ffmpeg yt-dlp
+```
+
+**3. Build and Run:**
+```bash
 cd backend
-cargo build
-cd ..
+cargo build --release
+cargo run --release
+```
 
-# Install frontend dependencies
+Backend will start on `http://localhost:8080`
+
+### Frontend (React)
+
+**1. Install Node.js:**
+```bash
+# Using nvm (recommended)
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+nvm install 20
+nvm use 20
+```
+
+**2. Install Dependencies:**
+```bash
 cd frontend
 npm install
-cd ..
 ```
 
-### Method 3: Docker Production Setup
-
-For production deployment with Docker:
-
+**3. Run Development Server:**
 ```bash
-# Clone repository
-git clone https://github.com/cryals/qruster.git
-cd qruster
-
-# Configure domain (edit Caddyfile)
-nano Caddyfile
-# Replace localhost with your domain
-
-# Create .env file
-echo "DOMAIN=your-domain.com" > .env
-echo "RUST_LOG=info" >> .env
-
-# Start services
-docker compose up -d
+npm run dev
 ```
 
-## Configuration
+Frontend will start on `http://localhost:3000`
+
+**4. Build for Production:**
+```bash
+npm run build
+npm run preview
+```
+
+## Docker Compose Configuration
 
 ### Development Mode
 
-Development mode runs services directly on your machine:
+```yaml
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./backend:/app
+      - downloads:/tmp/downloads
+    environment:
+      - RUST_LOG=debug
 
-- Backend: `http://localhost:8080`
-- Frontend: `http://localhost:3000`
-- Hot reload enabled for both services
-- Detailed logging
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+```
 
 ### Production Mode
 
-Production mode uses Docker containers:
+```yaml
+services:
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
 
-- All services behind Caddy reverse proxy
-- Automatic SSL certificate via Let's Encrypt
-- Optimized builds
-- Minimal logging
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    environment:
+      - RUST_LOG=info
 
-### Environment Variables
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+```
 
-Create a `.env` file in the project root:
+## SSL Configuration (Production)
 
-```env
-# Domain for production (optional for dev)
-DOMAIN=media.example.com
+### Using Caddy (Automatic)
 
-# Logging level
+Edit `Caddyfile`:
+
+```
+yourdomain.com {
+    reverse_proxy /api/* backend:8080
+    reverse_proxy /* frontend:80
+    
+    tls your-email@example.com
+}
+```
+
+Caddy will automatically obtain SSL certificates from Let's Encrypt.
+
+### Using Let's Encrypt (Manual)
+
+```bash
+# Install certbot
+sudo apt install certbot
+
+# Obtain certificate
+sudo certbot certonly --standalone -d yourdomain.com
+
+# Certificates will be in:
+# /etc/letsencrypt/live/yourdomain.com/
+```
+
+## Environment Variables
+
+Create `.env` file in the root directory:
+
+```bash
+# Backend
 RUST_LOG=info
+MAX_FILE_SIZE=2147483648  # 2GB in bytes
+DOWNLOAD_TIMEOUT=300      # 5 minutes
+TEMP_DIR=/tmp/downloads
 
-# Download directory (optional)
-DOWNLOAD_DIR=/tmp/media-downloader
+# Frontend
+VITE_API_URL=http://localhost:8080
 
-# Maximum file size in bytes (optional, default 2GB)
-MAX_FILE_SIZE=2147483648
+# Caddy
+DOMAIN=yourdomain.com
+EMAIL=your-email@example.com
 ```
 
-## Verification
+## Port Configuration
 
-After installation, verify everything works:
+Default ports:
 
-### Development Mode
+- **Frontend**: 3000 (dev), 80 (prod)
+- **Backend**: 8080
+- **Caddy**: 80 (HTTP), 443 (HTTPS)
 
-```bash
-./scripts/run.sh
-# Choose option 1 (Development)
+To change ports, edit `docker-compose.yml`:
+
+```yaml
+services:
+  backend:
+    ports:
+      - "8081:8080"  # Change 8081 to your desired port
 ```
-
-Then open:
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:8080/api/health
-
-### Production Mode
-
-```bash
-./scripts/run.sh
-# Choose option 2 (Production)
-```
-
-Then open your configured domain in a browser.
 
 ## Troubleshooting
 
-### Port Already in Use
+### Docker Issues
 
-If ports 3000 or 8080 are already in use:
+**Problem**: "Cannot connect to Docker daemon"
+```bash
+# Start Docker service
+sudo systemctl start docker
 
+# Add user to docker group
+sudo usermod -aG docker $USER
+newgrp docker
+```
+
+**Problem**: "Port already in use"
 ```bash
 # Find process using port
-lsof -i :3000
-lsof -i :8080
+sudo lsof -i :8080
 
 # Kill process
-kill -9 <PID>
+sudo kill -9 <PID>
 ```
 
-### FFmpeg Not Found
+### Build Issues
 
-Make sure FFmpeg is in your PATH:
-
+**Problem**: "Rust compilation failed"
 ```bash
-which ffmpeg
-# Should output: /usr/bin/ffmpeg or similar
+# Update Rust
+rustup update
+
+# Clean build
+cd backend
+cargo clean
+cargo build --release
 ```
 
-### yt-dlp Not Found
-
-Install yt-dlp:
-
+**Problem**: "npm install failed"
 ```bash
-# Using pip
-pip install yt-dlp
+# Clear npm cache
+npm cache clean --force
 
-# Or download binary
+# Remove node_modules
+rm -rf node_modules package-lock.json
+npm install
+```
+
+### Runtime Issues
+
+**Problem**: "yt-dlp not found"
+```bash
+# Install yt-dlp
 sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
 sudo chmod a+rx /usr/local/bin/yt-dlp
 ```
 
-### Docker Permission Denied
-
-Add your user to docker group:
-
+**Problem**: "FFmpeg not found"
 ```bash
-sudo usermod -aG docker $USER
-# Log out and log back in
+# Ubuntu/Debian
+sudo apt install ffmpeg
+
+# macOS
+brew install ffmpeg
 ```
-
-### SSL Certificate Issues
-
-If Caddy fails to obtain SSL certificate:
-
-1. Ensure port 80 and 443 are open
-2. Verify DNS points to your server
-3. Check Caddy logs: `docker compose logs caddy`
 
 ## Updating
 
-### Development
+### Docker Installation
 
 ```bash
-git pull
-cd backend && cargo build
-cd ../frontend && npm install
+git pull origin main
+docker-compose down
+docker-compose build --no-cache
+docker-compose up -d
 ```
 
-### Production
+### Manual Installation
 
 ```bash
-git pull
-docker compose down
-docker compose up -d --build
+git pull origin main
+
+# Update backend
+cd backend
+cargo build --release
+
+# Update frontend
+cd ../frontend
+npm install
+npm run build
 ```
 
 ## Uninstallation
 
-### Remove Application
+### Docker
+
+```bash
+# Stop and remove containers
+docker-compose down
+
+# Remove volumes
+docker-compose down -v
+
+# Remove images
+docker rmi qruster-backend qruster-frontend
+```
+
+### Manual
 
 ```bash
 # Stop services
-./scripts/run.sh
-# Choose option 3 (Stop services)
+pkill -f "cargo run"
+pkill -f "npm run"
 
 # Remove files
 cd ..
 rm -rf qruster
 ```
 
-### Remove Docker Volumes
-
-```bash
-docker compose down -v
-docker volume prune
-```
-
 ## Next Steps
 
-- Read [Usage Guide](usage.md) to learn how to use the application
-- Check [API Reference](api.md) for API documentation
-- See [Development Guide](development.md) for contributing
+- [Configure platforms](./platforms.md)
+- [Read API documentation](./api.md)
+- [Development guide](./development.md)
