@@ -4,6 +4,7 @@ import { URLInput } from './components/URLInput';
 import { MediaPreview } from './components/MediaPreview';
 import { FormatSelector } from './components/FormatSelector';
 import { DownloadButton } from './components/DownloadButton';
+import { PlatformBadges } from './components/PlatformBadges';
 import { api, ExtractResponse } from './services/api';
 
 function App() {
@@ -69,11 +70,9 @@ function App() {
               />
             </>
           )}
-        </Paper>
 
-        <Typography variant="body2" color="text.secondary" align="center" sx={{ mt: 4 }}>
-          Supports YouTube, TikTok, Instagram, Facebook, VK, Bilibili, and more
-        </Typography>
+          <PlatformBadges />
+        </Paper>
       </Box>
     </Container>
   );

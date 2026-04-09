@@ -1,4 +1,5 @@
 use crate::extractors::{Format, MediaExtractor, MediaInfo};
+use crate::services::ytdlp::YtDlpService;
 use anyhow::Result;
 use async_trait::async_trait;
 
@@ -11,20 +12,30 @@ impl MediaExtractor for GenericExtractor {
     }
 
     async fn extract_info(&self, url: &str) -> Result<MediaInfo> {
-        // Generic fallback using yt-dlp
-        // TODO: Implement actual yt-dlp integration
+        let ytdlp = YtDlpService::new();
+        let info = ytdlp.extract_info(url).await?;
+
+        let formats = info
+            .formats
+            .into_iter()
+            .map(|f| {
+                let quality = f.format_note.unwrap_or_else(|| f.format_id.clone());
+                Format {
+                    format_id: f.format_id,
+                    quality,
+                    ext: f.ext,
+                    filesize: f.filesize,
+                    url: None,
+                }
+            })
+            .collect();
+
         Ok(MediaInfo {
             platform: "generic".to_string(),
-            title: "Generic Media".to_string(),
-            duration: None,
-            thumbnail: None,
-            formats: vec![Format {
-                format_id: "best".to_string(),
-                quality: "best".to_string(),
-                ext: "mp4".to_string(),
-                filesize: None,
-                url: None,
-            }],
+            title: info.title,
+            duration: info.duration.map(|d| d as u64),
+            thumbnail: info.thumbnail,
+            formats,
         })
     }
 
