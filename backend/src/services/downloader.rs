@@ -50,6 +50,7 @@ impl Downloader {
         Ok(filepath)
     }
 
+    #[allow(dead_code)]
     pub async fn cleanup_old_files(&self) -> Result<()> {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -73,6 +74,7 @@ impl Downloader {
         Ok(())
     }
 
+    #[allow(dead_code)]
     pub fn get_temp_dir(&self) -> &PathBuf {
         &self.temp_dir
     }

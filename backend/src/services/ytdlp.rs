@@ -30,7 +30,7 @@ impl YtDlpService {
 
     pub async fn extract_info(&self, url: &str) -> Result<YtDlpInfo> {
         let output = TokioCommand::new("yt-dlp")
-            .args(&["--dump-json", "--no-playlist", "--skip-download", url])
+            .args(["--dump-json", "--no-playlist", "--skip-download", url])
             .output()
             .await
             .context("Failed to execute yt-dlp")?;
@@ -113,7 +113,7 @@ impl YtDlpService {
         format: &str,
     ) -> Result<String> {
         let output = TokioCommand::new("yt-dlp")
-            .args(&["-x", "--audio-format", format, "-o", output_path, url])
+            .args(["-x", "--audio-format", format, "-o", output_path, url])
             .output()
             .await
             .context("Failed to execute yt-dlp audio download")?;
@@ -126,6 +126,7 @@ impl YtDlpService {
         Ok(output_path.to_string())
     }
 
+    #[allow(dead_code)]
     pub fn check_available() -> bool {
         Command::new("yt-dlp")
             .arg("--version")

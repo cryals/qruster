@@ -1,5 +1,5 @@
 # Multi-stage build for Rust backend
-FROM rust:1.77-alpine AS builder
+FROM rust:1.83-alpine AS builder
 
 RUN apk add --no-cache musl-dev
 

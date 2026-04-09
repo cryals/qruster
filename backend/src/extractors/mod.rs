@@ -47,6 +47,7 @@ pub struct Format {
 pub trait MediaExtractor: Send + Sync {
     fn detect(&self, url: &str) -> bool;
     async fn extract_info(&self, url: &str) -> Result<MediaInfo>;
+    #[allow(dead_code)]
     async fn get_download_url(&self, url: &str, format_id: &str) -> Result<String>;
 }
 
@@ -76,11 +77,7 @@ pub fn detect_platform(url: &str) -> Option<Box<dyn MediaExtractor>> {
         Box::new(generic::GenericExtractor),
     ];
 
-    for extractor in extractors {
-        if extractor.detect(url) {
-            return Some(extractor);
-        }
-    }
-
-    None
+    extractors
+        .into_iter()
+        .find(|extractor| extractor.detect(url))
 }

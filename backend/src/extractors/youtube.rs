@@ -10,7 +10,7 @@ impl MediaExtractor for YouTubeExtractor {
         url.contains("youtube.com") || url.contains("youtu.be")
     }
 
-    async fn extract_info(&self, url: &str) -> Result<MediaInfo> {
+    async fn extract_info(&self, _url: &str) -> Result<MediaInfo> {
         // TODO: Implement actual YouTube extraction
         // For now, return mock data
         Ok(MediaInfo {
