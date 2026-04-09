@@ -47,5 +47,14 @@
   },
   "overrides": {
     "webpackbar": "6.0.0"
-  }
+  },
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
 }
