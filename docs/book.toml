@@ -1,19 +1,48 @@
 [book]
-title = "Media Downloader Documentation"
+title = "Media Downloader"
 authors = ["cryals"]
 language = "en"
 multilingual = true
 src = "src"
+description = "Universal selfhosted media downloader supporting 20+ platforms"
 
 [build]
 build-dir = "book"
 
 [output.html]
-default-theme = "light"
+default-theme = "rust"
 preferred-dark-theme = "navy"
 git-repository-url = "https://github.com/cryals/qruster"
 edit-url-template = "https://github.com/cryals/qruster/edit/main/docs/{path}"
+site-url = "/qruster/"
+cname = ""
+curly-quotes = true
+mathjax-support = false
+copy-fonts = true
+no-section-label = true
+additional-css = ["theme/custom.css"]
+additional-js = ["theme/custom.js"]
 
 [output.html.fold]
 enable = true
 level = 0
+
+[output.html.search]
+enable = true
+limit-results = 30
+teaser-word-count = 30
+use-boolean-and = true
+boost-title = 2
+boost-hierarchy = 1
+boost-paragraph = 1
+expand = true
+heading-split-level = 3
+
+[output.html.playground]
+editable = false
+copyable = true
+copy-js = true
+
+[preprocessor.links]
+
+[preprocessor.index]

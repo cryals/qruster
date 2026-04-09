@@ -2,7 +2,9 @@
 
 [Introduction](README.md)
 
-# English Documentation
+---
+
+# 📖 Documentation
 
 - [Concept & Ideas](en/concept.md)
 - [Architecture](en/architecture.md)
@@ -12,7 +14,9 @@
 - [Development](en/development.md)
 - [Supported Platforms](en/platforms.md)
 
-# Русская документация
+---
+
+# 📖 Документация
 
 - [Концепция и идеи](ru/concept.md)
 - [Архитектура](ru/architecture.md)
