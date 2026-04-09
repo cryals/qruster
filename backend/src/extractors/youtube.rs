@@ -1,4 +1,5 @@
 use crate::extractors::{Format, MediaExtractor, MediaInfo};
+use crate::services::ytdlp::YtDlpService;
 use anyhow::Result;
 use async_trait::async_trait;
 
@@ -10,35 +11,41 @@ impl MediaExtractor for YouTubeExtractor {
         url.contains("youtube.com") || url.contains("youtu.be")
     }
 
-    async fn extract_info(&self, _url: &str) -> Result<MediaInfo> {
-        // TODO: Implement actual YouTube extraction
-        // For now, return mock data
+    async fn extract_info(&self, url: &str) -> Result<MediaInfo> {
+        let ytdlp = YtDlpService::new();
+        let info = ytdlp.extract_info(url).await?;
+
+        let formats = info
+            .formats
+            .into_iter()
+            .map(|f| {
+                let quality = f.format_note.unwrap_or_else(|| {
+                    if f.vcodec.as_deref() == Some("none") {
+                        "audio".to_string()
+                    } else {
+                        f.format_id.clone()
+                    }
+                });
+                Format {
+                    format_id: f.format_id,
+                    quality,
+                    ext: f.ext,
+                    filesize: f.filesize,
+                    url: None,
+                }
+            })
+            .collect();
+
         Ok(MediaInfo {
             platform: "youtube".to_string(),
-            title: "Sample YouTube Video".to_string(),
-            duration: Some(180),
-            thumbnail: Some("https://i.ytimg.com/vi/sample/maxresdefault.jpg".to_string()),
-            formats: vec![
-                Format {
-                    format_id: "18".to_string(),
-                    quality: "360p".to_string(),
-                    ext: "mp4".to_string(),
-                    filesize: Some(10485760),
-                    url: None,
-                },
-                Format {
-                    format_id: "22".to_string(),
-                    quality: "720p".to_string(),
-                    ext: "mp4".to_string(),
-                    filesize: Some(52428800),
-                    url: None,
-                },
-            ],
+            title: info.title,
+            duration: info.duration.map(|d| d as u64),
+            thumbnail: info.thumbnail,
+            formats,
         })
     }
 
     async fn get_download_url(&self, _url: &str, _format_id: &str) -> Result<String> {
-        // TODO: Implement actual download URL retrieval
         Ok("https://example.com/download".to_string())
     }
 }

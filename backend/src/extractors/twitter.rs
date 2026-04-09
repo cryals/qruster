@@ -1,4 +1,5 @@
 use crate::extractors::{Format, MediaExtractor, MediaInfo};
+use crate::services::ytdlp::YtDlpService;
 use anyhow::Result;
 use async_trait::async_trait;
 
@@ -7,26 +8,38 @@ pub struct TwitterExtractor;
 #[async_trait]
 impl MediaExtractor for TwitterExtractor {
     fn detect(&self, url: &str) -> bool {
-        url.contains("twitter.com") || url.contains("x.com") || url.contains("t.co")
+        url.contains("twitter.com") || url.contains("x.com")
     }
 
-    async fn extract_info(&self, _url: &str) -> Result<MediaInfo> {
+    async fn extract_info(&self, url: &str) -> Result<MediaInfo> {
+        let ytdlp = YtDlpService::new();
+        let info = ytdlp.extract_info(url).await?;
+
+        let formats = info
+            .formats
+            .into_iter()
+            .map(|f| {
+                let quality = f.format_note.unwrap_or_else(|| f.format_id.clone());
+                Format {
+                    format_id: f.format_id,
+                    quality,
+                    ext: f.ext,
+                    filesize: f.filesize,
+                    url: None,
+                }
+            })
+            .collect();
+
         Ok(MediaInfo {
             platform: "twitter".to_string(),
-            title: "Twitter Video".to_string(),
-            duration: None,
-            thumbnail: None,
-            formats: vec![Format {
-                format_id: "default".to_string(),
-                quality: "720p".to_string(),
-                ext: "mp4".to_string(),
-                filesize: None,
-                url: None,
-            }],
+            title: info.title,
+            duration: info.duration.map(|d| d as u64),
+            thumbnail: info.thumbnail,
+            formats,
         })
     }
 
     async fn get_download_url(&self, _url: &str, _format_id: &str) -> Result<String> {
-        Ok("https://example.com/download".to_string())
+        Ok("".to_string())
     }
 }
