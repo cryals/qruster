@@ -1,9 +1,9 @@
+use anyhow::Result;
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
-use anyhow::Result;
 
-pub mod youtube;
 pub mod generic;
+pub mod youtube;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MediaInfo {

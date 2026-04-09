@@ -1,6 +1,6 @@
-use async_trait::async_trait;
+use crate::extractors::{Format, MediaExtractor, MediaInfo};
 use anyhow::Result;
-use crate::extractors::{MediaExtractor, MediaInfo, Format};
+use async_trait::async_trait;
 
 pub struct GenericExtractor;
 
@@ -18,15 +18,13 @@ impl MediaExtractor for GenericExtractor {
             title: "Generic Media".to_string(),
             duration: None,
             thumbnail: None,
-            formats: vec![
-                Format {
-                    format_id: "best".to_string(),
-                    quality: "best".to_string(),
-                    ext: "mp4".to_string(),
-                    filesize: None,
-                    url: None,
-                },
-            ],
+            formats: vec![Format {
+                format_id: "best".to_string(),
+                quality: "best".to_string(),
+                ext: "mp4".to_string(),
+                filesize: None,
+                url: None,
+            }],
         })
     }
 

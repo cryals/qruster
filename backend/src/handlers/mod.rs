@@ -1,12 +1,12 @@
 use axum::{http::StatusCode, response::IntoResponse, Json};
 use serde::{Deserialize, Serialize};
 
-mod extract;
 mod download;
+mod extract;
 mod formats;
 
-pub use extract::extract;
 pub use download::download;
+pub use extract::extract;
 pub use formats::formats;
 
 #[derive(Serialize)]

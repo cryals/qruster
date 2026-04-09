@@ -1,6 +1,6 @@
-use async_trait::async_trait;
+use crate::extractors::{Format, MediaExtractor, MediaInfo};
 use anyhow::Result;
-use crate::extractors::{MediaExtractor, MediaInfo, Format};
+use async_trait::async_trait;
 
 pub struct YouTubeExtractor;
 

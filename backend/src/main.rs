@@ -6,8 +6,8 @@ use std::net::SocketAddr;
 use tower_http::cors::{Any, CorsLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-mod handlers;
 mod extractors;
+mod handlers;
 mod services;
 
 #[tokio::main]
