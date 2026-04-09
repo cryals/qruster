@@ -27,7 +27,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '18'
           cache: 'npm'
           cache-dependency-path: './docs/package-lock.json'
 
@@ -39,7 +39,7 @@ jobs:
       - name: Build documentation
         run: |
           cd docs
-          npm run build
+          DOCUSAURUS_PROGRESS=false npm run build
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
