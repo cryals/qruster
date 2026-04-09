@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Container, Box, Typography, Alert, Paper } from '@mui/material';
 import { URLInput } from './components/URLInput';
 import { MediaPreview } from './components/MediaPreview';
