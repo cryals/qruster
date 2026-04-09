@@ -2,7 +2,7 @@
 name = "media-downloader"
 version = "0.1.0"
 edition = "2021"
-authors = ["AL-S"]
+authors = ["cryals <gghj31621@gmail.com>"]
 
 [dependencies]
 axum = "0.7"

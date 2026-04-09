@@ -1,6 +1,6 @@
 [book]
 title = "Media Downloader Documentation"
-authors = ["AL-S"]
+authors = ["cryals"]
 language = "en"
 multilingual = false
 src = "src"
@@ -11,8 +11,8 @@ build-dir = "book"
 [output.html]
 default-theme = "light"
 preferred-dark-theme = "navy"
-git-repository-url = "https://github.com/yourusername/yt-to-mp3"
-edit-url-template = "https://github.com/yourusername/yt-to-mp3/edit/main/docs/{path}"
+git-repository-url = "https://github.com/cryals/qruster"
+edit-url-template = "https://github.com/cryals/qruster/edit/main/docs/{path}"
 
 [output.html.fold]
 enable = true

@@ -2,6 +2,12 @@
   "name": "media-downloader-frontend",
   "version": "0.1.0",
   "type": "module",
+  "author": "cryals <gghj31621@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cryals/qruster.git"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
