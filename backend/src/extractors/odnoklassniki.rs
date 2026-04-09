@@ -10,7 +10,7 @@ impl MediaExtractor for OdnoklassnikiExtractor {
         url.contains("ok.ru") || url.contains("odnoklassniki.ru")
     }
 
-    async fn extract_info(&self, url: &str) -> Result<MediaInfo> {
+    async fn extract_info(&self, _url: &str) -> Result<MediaInfo> {
         Ok(MediaInfo {
             platform: "odnoklassniki".to_string(),
             title: "OK Video".to_string(),

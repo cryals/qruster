@@ -10,7 +10,7 @@ impl MediaExtractor for TikTokExtractor {
         url.contains("tiktok.com")
     }
 
-    async fn extract_info(&self, url: &str) -> Result<MediaInfo> {
+    async fn extract_info(&self, _url: &str) -> Result<MediaInfo> {
         // TODO: Implement TikTok API integration
         Ok(MediaInfo {
             platform: "tiktok".to_string(),

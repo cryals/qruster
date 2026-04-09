@@ -10,7 +10,7 @@ impl MediaExtractor for TumblrExtractor {
         url.contains("tumblr.com")
     }
 
-    async fn extract_info(&self, url: &str) -> Result<MediaInfo> {
+    async fn extract_info(&self, _url: &str) -> Result<MediaInfo> {
         Ok(MediaInfo {
             platform: "tumblr".to_string(),
             title: "Tumblr Post".to_string(),

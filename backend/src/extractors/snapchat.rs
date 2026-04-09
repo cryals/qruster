@@ -10,7 +10,7 @@ impl MediaExtractor for SnapchatExtractor {
         url.contains("snapchat.com")
     }
 
-    async fn extract_info(&self, url: &str) -> Result<MediaInfo> {
+    async fn extract_info(&self, _url: &str) -> Result<MediaInfo> {
         Ok(MediaInfo {
             platform: "snapchat".to_string(),
             title: "Snapchat Story".to_string(),

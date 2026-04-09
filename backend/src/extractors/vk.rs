@@ -10,7 +10,7 @@ impl MediaExtractor for VKExtractor {
         url.contains("vk.com") || url.contains("vk.ru")
     }
 
-    async fn extract_info(&self, url: &str) -> Result<MediaInfo> {
+    async fn extract_info(&self, _url: &str) -> Result<MediaInfo> {
         Ok(MediaInfo {
             platform: "vk".to_string(),
             title: "VK Video".to_string(),

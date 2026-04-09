@@ -1,5 +1,5 @@
 use super::ErrorResponse;
-use crate::extractors::{detect_platform, MediaInfo};
+use crate::extractors::detect_platform;
 use axum::{response::IntoResponse, Json};
 use serde::{Deserialize, Serialize};
 

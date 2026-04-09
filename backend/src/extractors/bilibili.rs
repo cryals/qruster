@@ -10,7 +10,7 @@ impl MediaExtractor for BilibiliExtractor {
         url.contains("bilibili.com") || url.contains("b23.tv")
     }
 
-    async fn extract_info(&self, url: &str) -> Result<MediaInfo> {
+    async fn extract_info(&self, _url: &str) -> Result<MediaInfo> {
         Ok(MediaInfo {
             platform: "bilibili".to_string(),
             title: "Bilibili Video".to_string(),

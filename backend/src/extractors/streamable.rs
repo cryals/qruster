@@ -10,7 +10,7 @@ impl MediaExtractor for StreamableExtractor {
         url.contains("streamable.com")
     }
 
-    async fn extract_info(&self, url: &str) -> Result<MediaInfo> {
+    async fn extract_info(&self, _url: &str) -> Result<MediaInfo> {
         Ok(MediaInfo {
             platform: "streamable".to_string(),
             title: "Streamable Video".to_string(),

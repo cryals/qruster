@@ -10,7 +10,7 @@ impl MediaExtractor for FacebookExtractor {
         url.contains("facebook.com") || url.contains("fb.watch")
     }
 
-    async fn extract_info(&self, url: &str) -> Result<MediaInfo> {
+    async fn extract_info(&self, _url: &str) -> Result<MediaInfo> {
         Ok(MediaInfo {
             platform: "facebook".to_string(),
             title: "Facebook Video".to_string(),

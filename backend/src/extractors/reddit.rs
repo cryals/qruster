@@ -10,7 +10,7 @@ impl MediaExtractor for RedditExtractor {
         url.contains("reddit.com") || url.contains("redd.it")
     }
 
-    async fn extract_info(&self, url: &str) -> Result<MediaInfo> {
+    async fn extract_info(&self, _url: &str) -> Result<MediaInfo> {
         Ok(MediaInfo {
             platform: "reddit".to_string(),
             title: "Reddit Video".to_string(),

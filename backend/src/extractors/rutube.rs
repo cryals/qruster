@@ -10,7 +10,7 @@ impl MediaExtractor for RutubeExtractor {
         url.contains("rutube.ru")
     }
 
-    async fn extract_info(&self, url: &str) -> Result<MediaInfo> {
+    async fn extract_info(&self, _url: &str) -> Result<MediaInfo> {
         Ok(MediaInfo {
             platform: "rutube".to_string(),
             title: "Rutube Video".to_string(),

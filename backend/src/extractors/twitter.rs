@@ -10,7 +10,7 @@ impl MediaExtractor for TwitterExtractor {
         url.contains("twitter.com") || url.contains("x.com") || url.contains("t.co")
     }
 
-    async fn extract_info(&self, url: &str) -> Result<MediaInfo> {
+    async fn extract_info(&self, _url: &str) -> Result<MediaInfo> {
         Ok(MediaInfo {
             platform: "twitter".to_string(),
             title: "Twitter Video".to_string(),

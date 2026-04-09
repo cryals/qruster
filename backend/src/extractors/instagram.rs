@@ -10,7 +10,7 @@ impl MediaExtractor for InstagramExtractor {
         url.contains("instagram.com")
     }
 
-    async fn extract_info(&self, url: &str) -> Result<MediaInfo> {
+    async fn extract_info(&self, _url: &str) -> Result<MediaInfo> {
         Ok(MediaInfo {
             platform: "instagram".to_string(),
             title: "Instagram Post".to_string(),

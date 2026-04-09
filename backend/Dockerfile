@@ -1,7 +1,7 @@
 # Multi-stage build for Rust backend
 FROM rust:alpine AS builder
 
-RUN apk add --no-cache musl-dev
+RUN apk add --no-cache musl-dev openssl-dev pkgconfig
 
 WORKDIR /app
 

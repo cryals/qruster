@@ -10,7 +10,7 @@ impl MediaExtractor for SoundCloudExtractor {
         url.contains("soundcloud.com")
     }
 
-    async fn extract_info(&self, url: &str) -> Result<MediaInfo> {
+    async fn extract_info(&self, _url: &str) -> Result<MediaInfo> {
         Ok(MediaInfo {
             platform: "soundcloud".to_string(),
             title: "SoundCloud Track".to_string(),

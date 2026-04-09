@@ -10,7 +10,7 @@ impl MediaExtractor for LoomExtractor {
         url.contains("loom.com")
     }
 
-    async fn extract_info(&self, url: &str) -> Result<MediaInfo> {
+    async fn extract_info(&self, _url: &str) -> Result<MediaInfo> {
         Ok(MediaInfo {
             platform: "loom".to_string(),
             title: "Loom Video".to_string(),

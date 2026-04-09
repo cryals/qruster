@@ -10,7 +10,7 @@ impl MediaExtractor for NewgroundsExtractor {
         url.contains("newgrounds.com")
     }
 
-    async fn extract_info(&self, url: &str) -> Result<MediaInfo> {
+    async fn extract_info(&self, _url: &str) -> Result<MediaInfo> {
         Ok(MediaInfo {
             platform: "newgrounds".to_string(),
             title: "Newgrounds Video".to_string(),

@@ -10,7 +10,7 @@ impl MediaExtractor for DailymotionExtractor {
         url.contains("dailymotion.com") || url.contains("dai.ly")
     }
 
-    async fn extract_info(&self, url: &str) -> Result<MediaInfo> {
+    async fn extract_info(&self, _url: &str) -> Result<MediaInfo> {
         Ok(MediaInfo {
             platform: "dailymotion".to_string(),
             title: "Dailymotion Video".to_string(),

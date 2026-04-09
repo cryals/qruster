@@ -10,7 +10,7 @@ impl MediaExtractor for BlueskyExtractor {
         url.contains("bsky.app") || url.contains("bsky.social")
     }
 
-    async fn extract_info(&self, url: &str) -> Result<MediaInfo> {
+    async fn extract_info(&self, _url: &str) -> Result<MediaInfo> {
         Ok(MediaInfo {
             platform: "bluesky".to_string(),
             title: "Bluesky Post".to_string(),

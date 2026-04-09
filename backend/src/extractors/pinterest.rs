@@ -10,7 +10,7 @@ impl MediaExtractor for PinterestExtractor {
         url.contains("pinterest.com") || url.contains("pin.it")
     }
 
-    async fn extract_info(&self, url: &str) -> Result<MediaInfo> {
+    async fn extract_info(&self, _url: &str) -> Result<MediaInfo> {
         Ok(MediaInfo {
             platform: "pinterest".to_string(),
             title: "Pinterest Pin".to_string(),

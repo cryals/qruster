@@ -10,7 +10,7 @@ impl MediaExtractor for TwitchExtractor {
         url.contains("twitch.tv") || url.contains("clips.twitch.tv")
     }
 
-    async fn extract_info(&self, url: &str) -> Result<MediaInfo> {
+    async fn extract_info(&self, _url: &str) -> Result<MediaInfo> {
         Ok(MediaInfo {
             platform: "twitch".to_string(),
             title: "Twitch Clip".to_string(),

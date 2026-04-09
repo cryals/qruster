@@ -10,7 +10,7 @@ impl MediaExtractor for VimeoExtractor {
         url.contains("vimeo.com")
     }
 
-    async fn extract_info(&self, url: &str) -> Result<MediaInfo> {
+    async fn extract_info(&self, _url: &str) -> Result<MediaInfo> {
         Ok(MediaInfo {
             platform: "vimeo".to_string(),
             title: "Vimeo Video".to_string(),
