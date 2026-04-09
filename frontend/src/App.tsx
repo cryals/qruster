@@ -41,40 +41,79 @@ function App() {
   };
 
   return (
-    <Container maxWidth="md">
-      <Box sx={{ py: 8 }}>
-        <Paper elevation={0} sx={{ p: 4, bgcolor: 'background.paper', borderRadius: 3 }}>
-          <Typography variant="h3" component="h1" gutterBottom align="center" sx={{ mb: 1 }}>
-            Media Downloader
-          </Typography>
-          <Typography variant="body1" color="text.secondary" align="center" sx={{ mb: 4 }}>
-            Download audio and video from 20+ platforms
-          </Typography>
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+      <Container maxWidth="md">
+        <Box sx={{ py: 6 }}>
+          <Box sx={{ textAlign: 'center', mb: 6 }}>
+            <Typography
+              variant="h2"
+              component="h1"
+              gutterBottom
+              sx={{
+                fontWeight: 500,
+                background: 'linear-gradient(135deg, #6750A4 0%, #7965AF 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                mb: 2
+              }}
+            >
+              Media Downloader
+            </Typography>
+            <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
+              Universal selfhosted media downloader
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Download audio and video from 20+ platforms
+            </Typography>
+          </Box>
 
-          <URLInput onUrlSubmit={handleUrlSubmit} loading={loading} />
+          <Paper
+            elevation={0}
+            sx={{
+              p: 4,
+              bgcolor: 'background.paper',
+              borderRadius: 4,
+              border: '1px solid',
+              borderColor: 'divider'
+            }}
+          >
+            <URLInput onUrlSubmit={handleUrlSubmit} loading={loading} />
 
-          {error && (
-            <Alert severity="error" sx={{ mt: 3 }}>
-              {error}
-            </Alert>
-          )}
+            {error && (
+              <Alert severity="error" sx={{ mt: 3, borderRadius: 2 }}>
+                {error}
+              </Alert>
+            )}
 
-          {mediaInfo && (
-            <>
-              <MediaPreview media={mediaInfo} />
-              <FormatSelector formats={mediaInfo.formats} onFormatChange={handleFormatChange} />
-              <DownloadButton
-                url={currentUrl}
-                format={selectedFormat}
-                audioOnly={audioOnly}
-              />
-            </>
-          )}
+            {loading && !mediaInfo && (
+              <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    Extracting media information...
+                  </Typography>
+                </Box>
+              </Box>
+            )}
 
-          <PlatformBadges />
-        </Paper>
-      </Box>
-    </Container>
+            {mediaInfo && (
+              <Box sx={{ mt: 4 }}>
+                <MediaPreview media={mediaInfo} />
+                <FormatSelector formats={mediaInfo.formats} onFormatChange={handleFormatChange} />
+                <DownloadButton
+                  url={currentUrl}
+                  format={selectedFormat}
+                  audioOnly={audioOnly}
+                />
+              </Box>
+            )}
+          </Paper>
+
+          <Box sx={{ mt: 4 }}>
+            <PlatformBadges />
+          </Box>
+        </Box>
+      </Container>
+    </Box>
   );
 }
 

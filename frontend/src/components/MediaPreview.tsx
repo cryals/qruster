@@ -1,6 +1,8 @@
 import React from 'react';
 import { Card, CardContent, CardMedia, Typography, Box, Chip } from '@mui/material';
 import { ExtractResponse } from '../services/api';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import VideoLibraryIcon from '@mui/icons-material/VideoLibrary';
 
 interface MediaPreviewProps {
   media: ExtractResponse;
@@ -15,28 +17,59 @@ export const MediaPreview: React.FC<MediaPreviewProps> = ({ media }) => {
   };
 
   return (
-    <Card sx={{ maxWidth: 600, mx: 'auto', mt: 3 }}>
+    <Card
+      sx={{
+        maxWidth: 700,
+        mx: 'auto',
+        borderRadius: 3,
+        overflow: 'hidden',
+        border: '1px solid',
+        borderColor: 'divider',
+        boxShadow: 'none',
+      }}
+    >
       {media.thumbnail && (
         <CardMedia
           component="img"
-          height="300"
+          height="350"
           image={media.thumbnail}
           alt={media.title}
-          sx={{ objectFit: 'cover' }}
+          sx={{
+            objectFit: 'cover',
+            bgcolor: 'grey.100',
+          }}
         />
       )}
-      <CardContent>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-          <Chip label={media.platform} color="primary" size="small" />
+      <CardContent sx={{ p: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+          <Chip
+            label={media.platform.toUpperCase()}
+            color="primary"
+            size="small"
+            sx={{ fontWeight: 600, borderRadius: 2 }}
+          />
           {media.duration && (
-            <Chip label={formatDuration(media.duration)} variant="outlined" size="small" />
+            <Chip
+              icon={<AccessTimeIcon fontSize="small" />}
+              label={formatDuration(media.duration)}
+              variant="outlined"
+              size="small"
+              sx={{ borderRadius: 2 }}
+            />
           )}
+          <Chip
+            icon={<VideoLibraryIcon fontSize="small" />}
+            label={`${media.formats.length} formats`}
+            variant="outlined"
+            size="small"
+            sx={{ borderRadius: 2 }}
+          />
         </Box>
-        <Typography variant="h6" component="div" gutterBottom>
+        <Typography variant="h6" component="div" sx={{ fontWeight: 500, mb: 1 }}>
           {media.title}
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          {media.formats.length} format{media.formats.length !== 1 ? 's' : ''} available
+          Choose your preferred format and quality below
         </Typography>
       </CardContent>
     </Card>
