@@ -1,6 +1,19 @@
-# Media Downloader
+<p align="center">
+  <img src="assets/logo.png" alt="Media Downloader logo" width="140">
+</p>
 
-Self-hosted web service for downloading audio and video from 20+ supported platforms.
+<h1 align="center">Media Downloader</h1>
+
+<p align="center">
+  Self-hosted web service for downloading audio and video from 20+ supported platforms.
+</p>
+
+<p align="center">
+  <a href="docs/">Documentation</a> •
+  <a href="docs/docs/installation.md">Installation</a> •
+  <a href="docs/docs/usage.md">Usage</a> •
+  <a href="docs/docs/api.md">API</a>
+</p>
 
 ## Features
 
@@ -73,7 +86,7 @@ yt-to-mp3/
 - Installation: [`docs/docs/installation.md`](docs/docs/installation.md)
 - API reference: [`docs/docs/api.md`](docs/docs/api.md)
 
-The Docusaurus site is configured for GitHub Pages under the `cryals/qruster` repository.
+The Docusaurus site is configured for GitHub Pages under the `cryals/yt-to-mp3` repository.
 
 ## License
 

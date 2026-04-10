@@ -8,10 +8,10 @@ const config: Config = {
   favicon: 'img/favicon.ico',
 
   url: 'https://cryals.github.io',
-  baseUrl: '/qruster/',
+  baseUrl: '/yt-to-mp3/',
 
   organizationName: 'cryals',
-  projectName: 'qruster',
+  projectName: 'yt-to-mp3',
 
   onBrokenLinks: 'warn',
   markdown: {
@@ -62,14 +62,14 @@ const config: Config = {
       title: 'Media Downloader',
       logo: {
         alt: 'Media Downloader Logo',
-        src: 'img/logo.svg',
+        src: 'img/logo.png',
       },
       items: [
         {
           type: 'docSidebar',
           sidebarId: 'tutorialSidebar',
           position: 'left',
-          label: 'Documentation',
+          label: 'Docs',
         },
         {
           type: 'localeDropdown',
@@ -90,7 +90,7 @@ const config: Config = {
           items: [
             {
               label: 'Getting Started',
-              to: '/concept',
+              to: '/',
             },
             {
               label: 'Installation',
