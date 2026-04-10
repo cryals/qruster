@@ -86,7 +86,7 @@ yt-to-mp3/
 - Installation: [`docs/docs/installation.md`](docs/docs/installation.md)
 - API reference: [`docs/docs/api.md`](docs/docs/api.md)
 
-The Docusaurus site is configured for GitHub Pages under the `cryals/yt-to-mp3` repository.
+The Docusaurus site is configured for GitHub Pages under the `cryals/qruster` repository.
 
 ## License
 

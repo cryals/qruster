@@ -8,10 +8,10 @@ const config: Config = {
   favicon: 'img/favicon.ico',
 
   url: 'https://cryals.github.io',
-  baseUrl: '/yt-to-mp3/',
+  baseUrl: '/qruster/',
 
   organizationName: 'cryals',
-  projectName: 'yt-to-mp3',
+  projectName: 'qruster',
 
   onBrokenLinks: 'warn',
   markdown: {
