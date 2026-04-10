@@ -63,12 +63,7 @@ pub async fn download(Json(payload): Json<DownloadRequest>) -> impl IntoResponse
     };
 
     match downloader
-        .download(
-            url,
-            format_id,
-            audio_only,
-            audio_format,
-        )
+        .download(url, format_id, audio_only, audio_format)
         .await
     {
         Ok(filepath) => {

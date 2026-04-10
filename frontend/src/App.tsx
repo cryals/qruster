@@ -8,7 +8,6 @@ import LinkRoundedIcon from '@mui/icons-material/LinkRounded';
 import ContentPasteRoundedIcon from '@mui/icons-material/ContentPasteRounded';
 import DownloadRoundedIcon from '@mui/icons-material/DownloadRounded';
 import AutorenewRoundedIcon from '@mui/icons-material/AutorenewRounded';
-import logo from '../../assets/logo.png';
 import { MediaPreview } from './components/MediaPreview';
 import { FormatSelector } from './components/FormatSelector';
 import { DownloadButton } from './components/DownloadButton';
@@ -668,7 +667,7 @@ function App() {
         <nav className="topbar">
           <div className="topbar-inner">
             <a href="#" className="brand" onClick={(event) => event.preventDefault()}>
-              <img src={logo} alt="qruster logo" />
+              <img src="/logo.png" alt="qruster logo" />
               qruster
             </a>
 

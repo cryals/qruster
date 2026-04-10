@@ -46,7 +46,8 @@ impl Downloader {
 
         let filename = format!("{}.{}", file_id, extension);
         let filepath = self.temp_dir.join(&filename);
-        let output_template = filepath.to_str()
+        let output_template = filepath
+            .to_str()
             .ok_or_else(|| anyhow::anyhow!("Invalid output path"))?;
 
         if audio_only {

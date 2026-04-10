@@ -44,8 +44,8 @@ impl YtDlpService {
             anyhow::bail!("Failed to extract media info: {}", error.trim());
         }
 
-        let json_str = String::from_utf8(output.stdout)
-            .context("yt-dlp output is not valid UTF-8")?;
+        let json_str =
+            String::from_utf8(output.stdout).context("yt-dlp output is not valid UTF-8")?;
 
         if json_str.trim().is_empty() {
             anyhow::bail!("yt-dlp returned empty output");
@@ -154,7 +154,10 @@ impl YtDlpService {
 
         let valid_formats = ["mp3", "ogg", "wav", "m4a", "opus", "flac", "aac"];
         if !valid_formats.contains(&format) {
-            anyhow::bail!("Invalid audio format: {}. Supported formats: mp3, ogg, wav, m4a, opus, flac, aac", format);
+            anyhow::bail!(
+                "Invalid audio format: {}. Supported formats: mp3, ogg, wav, m4a, opus, flac, aac",
+                format
+            );
         }
 
         let output = TokioCommand::new("yt-dlp")
