@@ -1,9 +1,10 @@
 import {themes as prismThemes} from 'prism-react-renderer';
+import type {PluginConfig} from '@docusaurus/types';
 import type {Config} from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
-  title: 'Media Downloader',
+  title: 'qruster',
   tagline: 'Universal selfhosted media downloader supporting 20+ platforms',
   favicon: 'img/favicon.ico',
 
@@ -17,23 +18,6 @@ const config: Config = {
   markdown: {
     hooks: {
       onBrokenMarkdownLinks: 'warn',
-    },
-  },
-
-  i18n: {
-    defaultLocale: 'en',
-    locales: ['en', 'ru'],
-    localeConfigs: {
-      en: {
-        label: 'English',
-        direction: 'ltr',
-        htmlLang: 'en-US',
-      },
-      ru: {
-        label: 'Русский',
-        direction: 'ltr',
-        htmlLang: 'ru-RU',
-      },
     },
   },
 
@@ -54,26 +38,47 @@ const config: Config = {
     ],
   ],
 
-  plugins: [],
+  plugins: [
+    [
+      '@docusaurus/plugin-content-docs',
+      {
+        id: 'ru',
+        path: 'ru-docs',
+        routeBasePath: 'ru',
+        sidebarPath: './sidebars.ru.ts',
+        editUrl: 'https://github.com/cryals/qruster/tree/main/docs/',
+      },
+    ] satisfies PluginConfig,
+  ],
 
   themeConfig: {
     image: 'img/social-card.png',
     navbar: {
-      title: 'Media Downloader',
+      title: 'qruster',
       logo: {
-        alt: 'Media Downloader Logo',
+        alt: 'qruster logo',
         src: 'img/logo.png',
       },
       items: [
         {
-          type: 'docSidebar',
-          sidebarId: 'tutorialSidebar',
+          to: '/',
           position: 'left',
           label: 'Docs',
         },
         {
-          type: 'localeDropdown',
+          type: 'dropdown',
+          label: 'Language',
           position: 'right',
+          items: [
+            {
+              label: 'English',
+              href: '/qruster/',
+            },
+            {
+              label: 'Русский',
+              href: '/qruster/ru/',
+            },
+          ],
         },
         {
           href: 'https://github.com/cryals/qruster',
@@ -137,9 +142,9 @@ const config: Config = {
       additionalLanguages: ['rust', 'typescript', 'bash', 'json', 'toml'],
     },
     colorMode: {
-      defaultMode: 'light',
+      defaultMode: 'dark',
       disableSwitch: false,
-      respectPrefersColorScheme: true,
+      respectPrefersColorScheme: false,
     },
     algolia: undefined,
   } satisfies Preset.ThemeConfig,
