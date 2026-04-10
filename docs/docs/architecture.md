@@ -1,342 +1,272 @@
 ---
-sidebar_position: 2
+sidebar_position: 5
 ---
+
 # Architecture
 
-## System Overview
+This page explains how the current project is organized in code, not an idealized future version.
 
-Media Downloader is built on a microservices architecture with clear separation of responsibilities between components.
+## High-Level Shape
 
-## System Components
+The repository has three main runtime areas:
 
-### 1. Frontend (React + MUI)
+1. `frontend/` for the browser UI
+2. `backend/` for the API and download pipeline
+3. `docs/` for the Docusaurus documentation site
 
-**Technologies:**
-- React 18 with TypeScript
-- Material-UI v6 (Material Design 3)
-- Vite for building
-- Axios for HTTP requests
+## Frontend
 
-**Structure:**
-```
+The frontend is a Vite + React application.
+
+### Entry flow
+
+- [`frontend/src/main.tsx`](../../frontend/src/main.tsx) mounts the app and applies the MUI theme
+- [`frontend/src/App.tsx`](../../frontend/src/App.tsx) owns the main page flow and top-level state
+
+### Current UI behavior
+
+The current UI is a single landing-page style screen:
+
+- sticky header
+- main hero with URL input
+- inline media result cards
+- footer
+
+After a URL is submitted:
+
+1. `App.tsx` calls `api.extract`
+2. the media card is rendered
+3. the user picks mode and format
+4. the user clicks `Подготовить файл`
+5. the backend returns a temporary `download_url`
+6. the frontend shows an explicit `Скачать файл` link
+
+### Frontend structure
+
+```text
 frontend/src/
-├── components/       # React components
-│   ├── URLInput.tsx
-│   ├── MediaPreview.tsx
+├── App.tsx
+├── main.tsx
+├── components/
+│   ├── DownloadButton.tsx
 │   ├── FormatSelector.tsx
-│   └── DownloadButton.tsx
-├── services/         # API clients
+│   ├── MediaPreview.tsx
+│   ├── PlatformBadges.tsx
+│   └── URLInput.tsx
+├── services/
 │   └── api.ts
-├── theme/            # Material Design 3 theme
-│   └── theme.ts
-└── App.tsx           # Main component
+└── theme/
+    └── theme.ts
 ```
 
-**Responsibilities:**
-- User interface
-- Client-side URL validation
-- Media information display
-- Application state management
+### Important frontend modules
 
-### 2. Backend (Rust + Axum)
+#### `App.tsx`
 
-**Technologies:**
-- Rust 1.77+
-- Axum (web framework)
-- Tokio (async runtime)
-- Serde (serialization)
-- Reqwest (HTTP client)
+Owns:
 
-**Structure:**
-```
+- theme toggle state
+- services popover state
+- current URL
+- loading/error state
+- extracted media data
+- selected format
+- audio/video mode
+
+It also contains the main landing-page CSS used by the current UI.
+
+#### `services/api.ts`
+
+Wraps the backend API:
+
+- `extract(url)`
+- `download(request)`
+- `getFormats(url)`
+- `health()`
+
+#### `FormatSelector.tsx`
+
+Implements the actual selection logic used by the UI:
+
+- video mode uses extracted `format_id`s
+- audio mode uses predefined output formats like `mp3` and `wav`
+
+This distinction matters because the backend interprets `format` differently depending on `audio_only`.
+
+## Backend
+
+The backend is an Axum application running on port `8080`.
+
+### Router
+
+Defined in [`backend/src/main.rs`](../../backend/src/main.rs):
+
+- `GET /`
+- `GET /api/health`
+- `POST /api/extract`
+- `POST /api/download`
+- `GET /api/formats`
+- `/downloads/*` static file serving from the temp directory
+
+### Backend structure
+
+```text
 backend/src/
-├── handlers/         # HTTP handlers
-│   ├── extract.rs
+├── main.rs
+├── handlers/
 │   ├── download.rs
+│   ├── extract.rs
 │   ├── formats.rs
 │   └── mod.rs
-├── extractors/       # Platform extractors
-│   ├── youtube.rs
-│   ├── tiktok.rs
+├── extractors/
+│   ├── bilibili.rs
+│   ├── bluesky.rs
+│   ├── dailymotion.rs
+│   ├── facebook.rs
 │   ├── generic.rs
+│   ├── instagram.rs
+│   ├── loom.rs
+│   ├── newgrounds.rs
+│   ├── odnoklassniki.rs
+│   ├── pinterest.rs
+│   ├── reddit.rs
+│   ├── rutube.rs
+│   ├── snapchat.rs
+│   ├── soundcloud.rs
+│   ├── streamable.rs
+│   ├── tiktok.rs
+│   ├── tumblr.rs
+│   ├── twitch.rs
+│   ├── twitter.rs
+│   ├── vimeo.rs
+│   ├── vk.rs
+│   ├── youtube.rs
 │   └── mod.rs
-├── services/         # Business logic
-│   ├── downloader.rs
-│   └── mod.rs
-└── main.rs           # Entry point
+└── services/
+    ├── downloader.rs
+    ├── mod.rs
+    └── ytdlp.rs
 ```
 
-**Responsibilities:**
-- REST API endpoints
-- Metadata extraction
-- Media downloading
-- Format conversion
-- Rate limiting
+### Handler responsibilities
 
-### 3. Reverse Proxy (Caddy)
+#### `extract.rs`
 
-**Functions:**
-- Automatic SSL via Let's Encrypt
-- Request proxying to backend/frontend
-- HTTP/2 and HTTP/3 support
-- Static configuration via Caddyfile
+- validates incoming URL shape
+- chooses an extractor via `detect_platform`
+- returns normalized media info and format list
 
-### 4. Platform Extractors
+#### `download.rs`
 
-Each platform has its own extractor implementing a common interface:
+- validates request payload
+- decides whether request is in video or audio mode
+- passes either a video `format_id` or an audio format to the downloader
+- returns a temporary `/downloads/...` URL
+
+#### `formats.rs`
+
+Currently returns static placeholder lists. It is not yet connected to actual extractor output.
+
+## Extractor Layer
+
+All extractors implement the `MediaExtractor` trait in [`backend/src/extractors/mod.rs`](../../backend/src/extractors/mod.rs).
+
+Current trait:
 
 ```rust
-pub trait MediaExtractor {
+pub trait MediaExtractor: Send + Sync {
     fn detect(&self, url: &str) -> bool;
     async fn extract_info(&self, url: &str) -> Result<MediaInfo>;
     async fn get_download_url(&self, url: &str, format_id: &str) -> Result<String>;
 }
 ```
 
-**Extractor List:**
-- YouTubeExtractor
-- TikTokExtractor
-- InstagramExtractor
-- VKExtractor
-- BilibiliExtractor
-- GenericExtractor (fallback to yt-dlp)
+### How extractor selection works
 
-## Data Flow
+`detect_platform(url)` iterates through registered extractors in a fixed order and returns the first one whose `detect()` returns `true`.
 
-### Information Extraction
+Important consequence:
 
-```
-1. User enters URL
-   ↓
-2. Frontend validates URL
-   ↓
-3. POST /api/extract → Backend
-   ↓
-4. Backend detects platform (detect_platform)
-   ↓
-5. Call corresponding extractor
-   ↓
-6. Extractor retrieves metadata
-   ↓
-7. Return MediaInfo → Frontend
-   ↓
-8. Display preview and formats
-```
+- `generic::GenericExtractor` is the fallback and matches any `http://` or `https://` URL
+- specific extractors must stay before `generic`
 
-### File Download
+## Download Pipeline
 
-```
-1. User selects format and quality
-   ↓
-2. POST /api/download → Backend
-   ↓
-3. Backend downloads media to temp directory
-   ↓
-4. FFmpeg converts (if needed)
-   ↓
-5. Generate temporary download link
-   ↓
-6. Return download_url → Frontend
-   ↓
-7. Browser downloads file
-   ↓
-8. Cleanup temp files (after 1 hour)
-```
+The real download logic is split across two services.
 
-## Data Models
+### `services/downloader.rs`
 
-### MediaInfo
+Responsibilities:
 
-```rust
-pub struct MediaInfo {
-    pub platform: String,      // "youtube", "tiktok", etc.
-    pub title: String,         // Media title
-    pub duration: Option<u64>, // Duration in seconds
-    pub thumbnail: Option<String>, // Preview URL
-    pub formats: Vec<Format>,  // Available formats
-}
+- creates the temp directory
+- generates UUID filenames
+- chooses output extension
+- delegates actual work to `YtDlpService`
+- verifies the output file was created
+
+### `services/ytdlp.rs`
+
+Responsibilities:
+
+- run `yt-dlp --dump-json` for metadata extraction
+- parse `formats` from the `yt-dlp` JSON output
+- download a selected video format
+- extract audio via `-x --audio-format`
+
+### Video download selector
+
+Current logic for video mode:
+
+- if a specific format is selected, backend uses a selector like `fmt+bestaudio/fmt/best`
+- otherwise it falls back to `bv*+ba/b`
+
+That is important for platforms such as Bilibili where a plain `best` request can fail or choose the wrong stream.
+
+## File Lifecycle
+
+Prepared files are written into:
+
+```text
+<system-temp>/media-downloader
 ```
 
-### Format
+In Docker mode, the compose file mounts:
 
-```rust
-pub struct Format {
-    pub format_id: String,     // Unique format ID
-    pub quality: String,       // "720p", "1080p", "best"
-    pub ext: String,           // "mp4", "webm", "mp3"
-    pub filesize: Option<u64>, // Size in bytes
-    pub url: Option<String>,   // Direct link (if available)
-}
+```text
+./downloads -> /tmp/media-downloader
 ```
 
-## Security
+There is cleanup code in `Downloader::cleanup_old_files()`, but it is not currently scheduled automatically in `main.rs`.
 
-### Rate Limiting
+## Current Limitations
 
-Implemented at backend level using tower-governor:
+These are important because the docs should reflect reality:
 
-```rust
-// Limits per IP
-- 10 /api/extract requests per minute
-- 5 /api/download requests per minute
-- 100 requests per hour (total limit)
-```
+- no authentication layer
+- no rate limiter in the current code
+- `GET /api/formats` is still a placeholder endpoint
+- `health.uptime` is hardcoded to `0`
+- broad `CORS` is enabled for all origins
+- cleanup exists in code but is not automatically triggered
 
-### Validation
-
-1. **URL validation**: Check URL validity and safety
-2. **Path sanitization**: Prevent path traversal attacks
-3. **Size limits**: Maximum file size 2GB
-4. **Duration limits**: Maximum video duration 3 hours
-
-### CORS
-
-Configured to allow requests only from frontend:
-
-```rust
-let cors = CorsLayer::new()
-    .allow_origin(Any)
-    .allow_methods(Any)
-    .allow_headers(Any);
-```
-
-## Scaling
-
-### Horizontal Scaling
-
-```
-                    ┌─────────────┐
-                    │Load Balancer│
-                    └──────┬──────┘
-                           │
-        ┌──────────────────┼──────────────────┐
-        │                  │                  │
-   ┌────▼────┐       ┌────▼────┐       ┌────▼────┐
-   │Backend 1│       │Backend 2│       │Backend 3│
-   └─────────┘       └─────────┘       └─────────┘
-        │                  │                  │
-        └──────────────────┼──────────────────┘
-                           │
-                    ┌──────▼──────┐
-                    │Shared Storage│
-                    └─────────────┘
-```
-
-### Caching
-
-For high loads, Redis can be added:
-
-```
-Frontend → Backend → Redis Cache → Extractors
-                         ↓
-                    (cache miss)
-                         ↓
-                   External APIs
-```
-
-### Task Queue
-
-For async processing, RabbitMQ can be used:
-
-```
-Backend → RabbitMQ → Workers → FFmpeg
-```
-
-## Monitoring
-
-### Metrics
-
-Recommended: Prometheus + Grafana:
-
-- Request count by endpoints
-- API response time
-- Successful/failed download count
-- Disk usage (temp files)
-- CPU/RAM usage
-
-### Logging
-
-Structured logging via tracing:
-
-```rust
-tracing::info!("Extracting info from URL: {}", url);
-tracing::error!("Failed to download: {}", error);
-```
-
-## Deployment
+## Deployment Layers
 
 ### Development
 
-```
-┌──────────┐     ┌──────────┐
-│ Frontend │     │ Backend  │
-│  :3000   │────▶│  :8080   │
-└──────────┘     └──────────┘
-```
+- frontend on `localhost:3000`
+- backend on `localhost:8080`
 
 ### Production
 
-```
-        ┌──────────┐
-        │  Caddy   │
-        │ :80/:443 │
-        └────┬─────┘
-             │
-    ┌────────┴────────┐
-    │                 │
-┌───▼────┐      ┌────▼────┐
-│Frontend│      │ Backend │
-│  :80   │      │  :8080  │
-└────────┘      └─────────┘
-```
+The repository includes:
 
-## Error Handling
+- [`docker-compose.yml`](../../docker-compose.yml)
+- `Caddyfile`
 
-### Error Types
+Default Docker services:
 
-```rust
-pub enum AppError {
-    InvalidUrl,
-    UnsupportedPlatform,
-    ExtractionFailed,
-    DownloadFailed,
-    ConversionFailed,
-    RateLimitExceeded,
-}
-```
+- `backend`
+- `frontend`
+- `caddy`
 
-### Handling Strategy
-
-1. **Graceful degradation**: Fallback to yt-dlp on extractor error
-2. **Retry logic**: Retry attempts for network errors
-3. **User feedback**: Clear error messages
-4. **Logging**: Detailed logging for debugging
-
-## Performance
-
-### Optimizations
-
-1. **Async/await**: Non-blocking I/O operations
-2. **Connection pooling**: HTTP connection reuse
-3. **Streaming**: Stream large files
-4. **Compression**: Gzip for API responses
-5. **CDN**: Frontend static files via CDN
-
-### Benchmarks
-
-Target metrics:
-
-- Metadata extraction time: < 2 seconds
-- Download start time: < 5 seconds
-- Throughput: 100+ concurrent users
-- Memory usage: < 512MB per instance
-
-## Future Improvements
-
-1. **WebSocket**: Real-time download progress
-2. **Database**: PostgreSQL for history and users
-3. **Queue**: RabbitMQ for background tasks
-4. **Cache**: Redis for metadata
-5. **CDN**: CloudFlare for static files
-6. **Monitoring**: Prometheus + Grafana
-7. **Tracing**: Jaeger for distributed tracing
+Caddy is intended to reverse proxy browser traffic to the frontend and `/api/*` traffic to the backend.

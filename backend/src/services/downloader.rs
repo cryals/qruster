@@ -28,16 +28,26 @@ impl Downloader {
         audio_only: bool,
         audio_format: Option<&str>,
     ) -> Result<PathBuf> {
+        if url.is_empty() {
+            anyhow::bail!("URL cannot be empty");
+        }
+
         let file_id = Uuid::new_v4();
         let extension = if audio_only {
-            audio_format.unwrap_or("mp3")
+            let fmt = audio_format.unwrap_or("mp3");
+            let valid_formats = ["mp3", "ogg", "wav", "m4a", "opus", "flac", "aac"];
+            if !valid_formats.contains(&fmt) {
+                anyhow::bail!("Invalid audio format: {}", fmt);
+            }
+            fmt
         } else {
             "mp4"
         };
 
         let filename = format!("{}.{}", file_id, extension);
         let filepath = self.temp_dir.join(&filename);
-        let output_template = filepath.to_str().unwrap();
+        let output_template = filepath.to_str()
+            .ok_or_else(|| anyhow::anyhow!("Invalid output path"))?;
 
         if audio_only {
             self.ytdlp
@@ -45,6 +55,11 @@ impl Downloader {
                 .await?;
         } else {
             self.ytdlp.download(url, format_id, output_template).await?;
+        }
+
+        // Verify file was created
+        if !filepath.exists() {
+            anyhow::bail!("Download completed but file was not created");
         }
 
         Ok(filepath)

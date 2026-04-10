@@ -29,26 +29,41 @@ impl YtDlpService {
     }
 
     pub async fn extract_info(&self, url: &str) -> Result<YtDlpInfo> {
+        if url.is_empty() {
+            anyhow::bail!("URL cannot be empty");
+        }
+
         let output = TokioCommand::new("yt-dlp")
             .args(["--dump-json", "--no-playlist", "--skip-download", url])
             .output()
             .await
-            .context("Failed to execute yt-dlp")?;
+            .context("Failed to execute yt-dlp. Make sure yt-dlp is installed.")?;
 
         if !output.status.success() {
             let error = String::from_utf8_lossy(&output.stderr);
-            anyhow::bail!("yt-dlp failed: {}", error);
+            anyhow::bail!("Failed to extract media info: {}", error.trim());
         }
 
-        let json_str = String::from_utf8_lossy(&output.stdout);
+        let json_str = String::from_utf8(output.stdout)
+            .context("yt-dlp output is not valid UTF-8")?;
+
+        if json_str.trim().is_empty() {
+            anyhow::bail!("yt-dlp returned empty output");
+        }
+
         let info: serde_json::Value =
-            serde_json::from_str(&json_str).context("Failed to parse yt-dlp output")?;
+            serde_json::from_str(&json_str).context("Failed to parse yt-dlp JSON output")?;
+
+        let formats = self.parse_formats(&info);
+        if formats.is_empty() {
+            anyhow::bail!("No formats available for this media");
+        }
 
         Ok(YtDlpInfo {
             title: info["title"].as_str().unwrap_or("Unknown").to_string(),
             duration: info["duration"].as_f64(),
             thumbnail: info["thumbnail"].as_str().map(|s| s.to_string()),
-            formats: self.parse_formats(&info),
+            formats,
         })
     }
 
@@ -80,17 +95,30 @@ impl YtDlpService {
         format_id: Option<&str>,
         output_path: &str,
     ) -> Result<String> {
-        let mut args = vec!["-o", output_path];
-
-        if let Some(fmt) = format_id {
-            args.push("-f");
-            args.push(fmt);
-        } else {
-            args.push("-f");
-            args.push("best");
+        if url.is_empty() {
+            anyhow::bail!("URL cannot be empty");
         }
 
-        args.push(url);
+        if output_path.is_empty() {
+            anyhow::bail!("Output path cannot be empty");
+        }
+
+        let mut args = vec!["-o".to_string(), output_path.to_string()];
+
+        if let Some(fmt) = format_id {
+            if !fmt.is_empty() {
+                args.push("-f".to_string());
+                args.push(format!("{fmt}+bestaudio/{fmt}/best"));
+            } else {
+                args.push("-f".to_string());
+                args.push("bv*+ba/b".to_string());
+            }
+        } else {
+            args.push("-f".to_string());
+            args.push("bv*+ba/b".to_string());
+        }
+
+        args.push(url.to_string());
 
         let output = TokioCommand::new("yt-dlp")
             .args(&args)
@@ -100,7 +128,7 @@ impl YtDlpService {
 
         if !output.status.success() {
             let error = String::from_utf8_lossy(&output.stderr);
-            anyhow::bail!("yt-dlp download failed: {}", error);
+            anyhow::bail!("Download failed: {}", error.trim());
         }
 
         Ok(output_path.to_string())
@@ -112,6 +140,23 @@ impl YtDlpService {
         output_path: &str,
         format: &str,
     ) -> Result<String> {
+        if url.is_empty() {
+            anyhow::bail!("URL cannot be empty");
+        }
+
+        if output_path.is_empty() {
+            anyhow::bail!("Output path cannot be empty");
+        }
+
+        if format.is_empty() {
+            anyhow::bail!("Audio format cannot be empty");
+        }
+
+        let valid_formats = ["mp3", "ogg", "wav", "m4a", "opus", "flac", "aac"];
+        if !valid_formats.contains(&format) {
+            anyhow::bail!("Invalid audio format: {}. Supported formats: mp3, ogg, wav, m4a, opus, flac, aac", format);
+        }
+
         let output = TokioCommand::new("yt-dlp")
             .args(["-x", "--audio-format", format, "-o", output_path, url])
             .output()
@@ -120,7 +165,7 @@ impl YtDlpService {
 
         if !output.status.success() {
             let error = String::from_utf8_lossy(&output.stderr);
-            anyhow::bail!("yt-dlp audio download failed: {}", error);
+            anyhow::bail!("Audio download failed: {}", error.trim());
         }
 
         Ok(output_path.to_string())

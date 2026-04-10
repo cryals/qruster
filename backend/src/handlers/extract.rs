@@ -26,11 +26,19 @@ pub struct FormatInfo {
 }
 
 pub async fn extract(Json(payload): Json<ExtractRequest>) -> impl IntoResponse {
-    let url = &payload.url;
+    let url = payload.url.trim();
 
     if url.is_empty() {
         return ErrorResponse {
             error: "URL is required".to_string(),
+        }
+        .into_response();
+    }
+
+    // Validate URL format
+    if !url.starts_with("http://") && !url.starts_with("https://") {
+        return ErrorResponse {
+            error: "Invalid URL format. URL must start with http:// or https://".to_string(),
         }
         .into_response();
     }
@@ -57,12 +65,12 @@ pub async fn extract(Json(payload): Json<ExtractRequest>) -> impl IntoResponse {
                 Json(response).into_response()
             }
             Err(e) => ErrorResponse {
-                error: format!("Failed to extract info: {}", e),
+                error: format!("Failed to extract media info: {}", e),
             }
             .into_response(),
         },
         None => ErrorResponse {
-            error: "Unsupported platform".to_string(),
+            error: "Unsupported platform or invalid URL".to_string(),
         }
         .into_response(),
     }

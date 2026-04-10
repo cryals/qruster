@@ -7,7 +7,6 @@ use serde::{Deserialize, Serialize};
 pub struct DownloadRequest {
     url: String,
     format: String,
-    quality: Option<String>,
     audio_only: Option<bool>,
 }
 
@@ -18,9 +17,25 @@ pub struct DownloadResponse {
 }
 
 pub async fn download(Json(payload): Json<DownloadRequest>) -> impl IntoResponse {
-    if payload.url.is_empty() {
+    let url = payload.url.trim();
+
+    if url.is_empty() {
         return ErrorResponse {
             error: "URL is required".to_string(),
+        }
+        .into_response();
+    }
+
+    if !url.starts_with("http://") && !url.starts_with("https://") {
+        return ErrorResponse {
+            error: "Invalid URL format".to_string(),
+        }
+        .into_response();
+    }
+
+    if payload.format.is_empty() {
+        return ErrorResponse {
+            error: "Format is required".to_string(),
         }
         .into_response();
     }
@@ -41,18 +56,31 @@ pub async fn download(Json(payload): Json<DownloadRequest>) -> impl IntoResponse
     } else {
         None
     };
+    let format_id = if audio_only {
+        None
+    } else {
+        Some(payload.format.as_str())
+    };
 
     match downloader
         .download(
-            &payload.url,
-            payload.quality.as_deref(),
+            url,
+            format_id,
             audio_only,
             audio_format,
         )
         .await
     {
         Ok(filepath) => {
-            let filename = filepath.file_name().unwrap().to_str().unwrap();
+            let filename = match filepath.file_name().and_then(|n| n.to_str()) {
+                Some(name) => name,
+                None => {
+                    return ErrorResponse {
+                        error: "Failed to get filename".to_string(),
+                    }
+                    .into_response()
+                }
+            };
             let download_url = format!("/downloads/{}", filename);
 
             Json(DownloadResponse {

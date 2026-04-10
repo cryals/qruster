@@ -24,7 +24,6 @@ export interface FormatInfo {
 export interface DownloadRequest {
   url: string;
   format: string;
-  quality?: string;
   audio_only?: boolean;
 }
 
@@ -41,24 +40,78 @@ export interface FormatsResponse {
 
 export const api = {
   async extract(url: string): Promise<ExtractResponse> {
-    const response = await axios.post<ExtractResponse>(`${API_BASE_URL}/extract`, { url });
-    return response.data;
+    if (!url || url.trim().length === 0) {
+      throw new Error('URL is required');
+    }
+
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      throw new Error('URL must start with http:// or https://');
+    }
+
+    try {
+      const response = await axios.post<ExtractResponse>(`${API_BASE_URL}/extract`, { url: url.trim() });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const message = error.response?.data?.error || error.message;
+        throw new Error(message);
+      }
+      throw error;
+    }
   },
 
   async download(request: DownloadRequest): Promise<DownloadResponse> {
-    const response = await axios.post<DownloadResponse>(`${API_BASE_URL}/download`, request);
-    return response.data;
+    if (!request.url || request.url.trim().length === 0) {
+      throw new Error('URL is required');
+    }
+
+    if (!request.format || request.format.trim().length === 0) {
+      throw new Error('Format is required');
+    }
+
+    try {
+      const response = await axios.post<DownloadResponse>(`${API_BASE_URL}/download`, {
+        ...request,
+        url: request.url.trim(),
+      });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const message = error.response?.data?.error || error.message;
+        throw new Error(message);
+      }
+      throw error;
+    }
   },
 
   async getFormats(url: string): Promise<FormatsResponse> {
-    const response = await axios.get<FormatsResponse>(`${API_BASE_URL}/formats`, {
-      params: { url },
-    });
-    return response.data;
+    if (!url || url.trim().length === 0) {
+      throw new Error('URL is required');
+    }
+
+    try {
+      const response = await axios.get<FormatsResponse>(`${API_BASE_URL}/formats`, {
+        params: { url: url.trim() },
+      });
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const message = error.response?.data?.error || error.message;
+        throw new Error(message);
+      }
+      throw error;
+    }
   },
 
   async health(): Promise<{ status: string; version: string; uptime: number }> {
-    const response = await axios.get(`${API_BASE_URL}/health`);
-    return response.data;
+    try {
+      const response = await axios.get(`${API_BASE_URL}/health`);
+      return response.data;
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        throw new Error('Backend service is unavailable');
+      }
+      throw error;
+    }
   },
 };

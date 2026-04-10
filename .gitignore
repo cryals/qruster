@@ -37,6 +37,7 @@ lerna-debug.log*
 # Documentation
 docs/book/
 docs/src/chapter_1.md
+.docusaurus/
 
 # Temporary files
 tmp/

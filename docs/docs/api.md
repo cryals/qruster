@@ -4,390 +4,207 @@ sidebar_position: 4
 
 # API Reference
 
-Media Downloader provides a RESTful API for extracting media information and downloading files from supported platforms.
+This page documents the API that is actually implemented in the current backend code.
 
-## Base URL
+## Base URLs
 
-- **Development**: `http://localhost:8080`
-- **Production**: `https://yourdomain.com`
+- Development: `http://localhost:8080`
+- Behind reverse proxy: your public domain, usually with `/api/*` proxied to the backend
 
-## Authentication
+## Endpoints Overview
 
-Currently, the API does not require authentication. Rate limiting is applied per IP address.
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/` | Plain text root message |
+| `GET` | `/api/health` | Basic health response |
+| `POST` | `/api/extract` | Extract title, thumbnail, duration, and available formats |
+| `POST` | `/api/download` | Prepare a downloadable file |
+| `GET` | `/api/formats` | Returns static placeholder format lists |
+| `GET` | `/downloads/:filename` | Serves prepared files from the backend temp directory |
 
-## Endpoints
+## `GET /api/health`
 
-### Health Check
+Returns a simple status payload.
 
-Check if the API is running and get service information.
+### Example response
 
-**Endpoint**: `GET /api/health`
-
-**Response**:
 ```json
 {
   "status": "healthy",
   "version": "0.1.0",
-  "uptime": 3600
+  "uptime": 0
 }
 ```
 
-**Status Codes**:
-- `200 OK` - Service is healthy
+Notes:
 
----
+- `uptime` is currently hardcoded to `0`
+- there is no deep dependency health check yet
 
-### Extract Media Info
+## `POST /api/extract`
 
-Extract metadata and available formats from a media URL.
+Extracts media metadata and platform formats from a URL.
 
-**Endpoint**: `POST /api/extract`
+### Request body
 
-**Request Body**:
 ```json
 {
   "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 }
 ```
 
-**Response**:
+### Validation
+
+The backend currently requires:
+
+- non-empty `url`
+- `url` must start with `http://` or `https://`
+- URL must match a supported extractor or fall back to the generic extractor
+
+### Example response
+
 ```json
 {
   "platform": "youtube",
-  "title": "Rick Astley - Never Gonna Give You Up",
+  "title": "Example title",
   "duration": 212,
-  "thumbnail": "https://i.ytimg.com/vi/dQw4w9WgXcQ/maxresdefault.jpg",
+  "thumbnail": "https://example.com/thumb.jpg",
   "formats": [
     {
       "format_id": "18",
       "quality": "360p",
       "ext": "mp4",
-      "filesize": 8234567,
-      "url": null
-    },
-    {
-      "format_id": "22",
-      "quality": "720p",
-      "ext": "mp4",
-      "filesize": 24567890,
-      "url": null
+      "filesize": 8234567
     },
     {
       "format_id": "140",
-      "quality": "audio",
+      "quality": "audio only",
       "ext": "m4a",
-      "filesize": 3456789,
-      "url": null
+      "filesize": 3456789
     }
   ]
 }
 ```
 
-**Parameters**:
-- `url` (string, required) - The media URL to extract information from
+### Response fields
 
-**Status Codes**:
-- `200 OK` - Successfully extracted information
-- `400 Bad Request` - Invalid URL or unsupported platform
-- `429 Too Many Requests` - Rate limit exceeded
-- `500 Internal Server Error` - Extraction failed
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `platform` | `string` | Extractor name such as `youtube`, `bilibili`, `generic` |
+| `title` | `string` | Media title |
+| `duration` | `number?` | Duration in seconds if available |
+| `thumbnail` | `string?` | Thumbnail URL if available |
+| `formats` | `array` | Extracted formats from `yt-dlp` |
 
-**Rate Limit**: 10 requests per minute per IP
+### Format object
 
----
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `format_id` | `string` | `yt-dlp` format identifier |
+| `quality` | `string` | Human-facing label, often based on `format_note` |
+| `ext` | `string` | Extension such as `mp4`, `webm`, `m4a` |
+| `filesize` | `number?` | File size in bytes if upstream exposes it |
 
-### Download Media
+## `POST /api/download`
 
-Download media in the specified format.
+Prepares a downloadable file and returns a temporary backend-served URL.
 
-**Endpoint**: `POST /api/download`
+### Request body for video mode
 
-**Request Body**:
 ```json
 {
   "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-  "format_id": "22",
+  "format": "137",
   "audio_only": false
 }
 ```
 
-**Response**:
-```json
-{
-  "download_url": "/downloads/a1b2c3d4-e5f6-7890-abcd-ef1234567890.mp4",
-  "filename": "Rick Astley - Never Gonna Give You Up.mp4",
-  "filesize": 24567890
-}
-```
-
-**Parameters**:
-- `url` (string, required) - The media URL to download
-- `format_id` (string, required) - Format ID from `/api/extract` response
-- `audio_only` (boolean, optional) - Extract audio only (default: false)
-
-**Status Codes**:
-- `200 OK` - Download prepared successfully
-- `400 Bad Request` - Invalid parameters
-- `429 Too Many Requests` - Rate limit exceeded
-- `500 Internal Server Error` - Download failed
-
-**Rate Limit**: 5 requests per minute per IP
-
-**Notes**:
-- The `download_url` is temporary and expires after 1 hour
-- Files are automatically cleaned up after download or expiration
-
----
-
-### Get Available Formats
-
-Get a list of all supported audio and video formats.
-
-**Endpoint**: `GET /api/formats`
-
-**Response**:
-```json
-{
-  "audio": [
-    {
-      "ext": "mp3",
-      "description": "MP3 audio format (lossy)",
-      "mime_type": "audio/mpeg"
-    },
-    {
-      "ext": "ogg",
-      "description": "OGG Vorbis audio format (lossy)",
-      "mime_type": "audio/ogg"
-    },
-    {
-      "ext": "wav",
-      "description": "WAV audio format (lossless)",
-      "mime_type": "audio/wav"
-    }
-  ],
-  "video": [
-    {
-      "ext": "mp4",
-      "description": "MP4 video format (H.264)",
-      "mime_type": "video/mp4"
-    },
-    {
-      "ext": "mkv",
-      "description": "Matroska video format",
-      "mime_type": "video/x-matroska"
-    },
-    {
-      "ext": "webm",
-      "description": "WebM video format (VP9)",
-      "mime_type": "video/webm"
-    }
-  ]
-}
-```
-
-**Status Codes**:
-- `200 OK` - Successfully retrieved formats
-
----
-
-## Error Responses
-
-All error responses follow this format:
+### Request body for audio mode
 
 ```json
 {
-  "error": "Error message describing what went wrong"
+  "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+  "format": "mp3",
+  "audio_only": true
 }
 ```
 
-### Common Errors
+### Current behavior
 
-**Invalid URL**:
+- In video mode, `format` is treated as a `format_id`
+- In audio mode, `format` is treated as the target audio format
+- The backend writes the file into the temp directory and returns a UUID-based filename
+
+### Example response
+
 ```json
 {
-  "error": "Invalid URL format"
+  "download_url": "/downloads/2d4f50a7-93c6-4e31-a0d8-77c4d4a0c5e8.mp4",
+  "expires_at": "2026-04-10T10:45:00Z"
 }
 ```
 
-**Unsupported Platform**:
+### Notes
+
+- `expires_at` is set to 30 minutes in the future
+- the frontend currently shows a separate explicit download link instead of auto-opening the file
+- backend cleanup code exists, but there is no background scheduler wired up yet
+
+## `GET /api/formats`
+
+This endpoint exists, but the current implementation is still a placeholder.
+
+### Request
+
+```text
+GET /api/formats?url=https://example.com/video
+```
+
+### Example response
+
 ```json
 {
-  "error": "Platform not supported"
+  "video": ["144p", "360p", "720p", "1080p"],
+  "audio": ["mp3", "ogg", "wav"],
+  "video_formats": ["mp4", "mkv", "webm"]
 }
 ```
 
-**Rate Limit Exceeded**:
+Important:
+
+- this response is not derived from the real extractor result
+- the frontend main flow does not depend on this endpoint
+
+## Error Format
+
+Backend errors are returned as:
+
 ```json
 {
-  "error": "Rate limit exceeded. Please try again later."
+  "error": "Human-readable error message"
 }
 ```
 
-**Extraction Failed**:
-```json
-{
-  "error": "Failed to extract media information"
-}
+### Status behavior
+
+At the moment, most handler errors are returned as HTTP `400 Bad Request` through a shared `ErrorResponse`, even when the underlying failure is operational. This is a current limitation of the implementation.
+
+## File Serving
+
+Prepared files are exposed under:
+
+```text
+/downloads/<generated-filename>
 ```
 
-**Download Failed**:
-```json
-{
-  "error": "Failed to download media"
-}
-```
-
----
-
-## Rate Limiting
-
-Rate limits are applied per IP address:
-
-| Endpoint | Limit |
-|----------|-------|
-| `/api/extract` | 10 requests/minute |
-| `/api/download` | 5 requests/minute |
-| All endpoints | 100 requests/hour |
-
-When rate limit is exceeded, the API returns:
-- **Status Code**: `429 Too Many Requests`
-- **Headers**: `Retry-After: <seconds>`
-
----
+The backend uses Axum `ServeDir` to expose the temp directory.
 
 ## CORS
 
-The API supports Cross-Origin Resource Sharing (CORS) with the following configuration:
+The server currently allows any origin, method, and header:
 
-- **Allowed Origins**: All origins (`*`)
-- **Allowed Methods**: `GET`, `POST`
-- **Allowed Headers**: All headers
+- `allow_origin(Any)`
+- `allow_methods(Any)`
+- `allow_headers(Any)`
 
-For production deployments, it's recommended to restrict allowed origins to your frontend domain.
-
----
-
-## Examples
-
-### JavaScript (Fetch API)
-
-```javascript
-// Extract media info
-async function extractMedia(url) {
-  const response = await fetch('http://localhost:8080/api/extract', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ url }),
-  });
-  
-  if (!response.ok) {
-    throw new Error('Extraction failed');
-  }
-  
-  return await response.json();
-}
-
-// Download media
-async function downloadMedia(url, formatId, audioOnly = false) {
-  const response = await fetch('http://localhost:8080/api/download', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      url,
-      format_id: formatId,
-      audio_only: audioOnly,
-    }),
-  });
-  
-  if (!response.ok) {
-    throw new Error('Download failed');
-  }
-  
-  const data = await response.json();
-  window.location.href = `http://localhost:8080${data.download_url}`;
-}
-```
-
-### Python (requests)
-
-```python
-import requests
-
-# Extract media info
-def extract_media(url):
-    response = requests.post(
-        'http://localhost:8080/api/extract',
-        json={'url': url}
-    )
-    response.raise_for_status()
-    return response.json()
-
-# Download media
-def download_media(url, format_id, audio_only=False):
-    response = requests.post(
-        'http://localhost:8080/api/download',
-        json={
-            'url': url,
-            'format_id': format_id,
-            'audio_only': audio_only
-        }
-    )
-    response.raise_for_status()
-    data = response.json()
-    
-    # Download the file
-    file_response = requests.get(
-        f"http://localhost:8080{data['download_url']}"
-    )
-    with open(data['filename'], 'wb') as f:
-        f.write(file_response.content)
-```
-
-### cURL
-
-```bash
-# Extract media info
-curl -X POST http://localhost:8080/api/extract \
-  -H "Content-Type: application/json" \
-  -d '{"url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"}'
-
-# Download media
-curl -X POST http://localhost:8080/api/download \
-  -H "Content-Type: application/json" \
-  -d '{
-    "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-    "format_id": "22",
-    "audio_only": false
-  }'
-```
-
----
-
-## Supported Platforms
-
-See [Platforms](./platforms.md) for a complete list of supported platforms and their capabilities.
-
----
-
-## Limitations
-
-- **Maximum file size**: 2GB
-- **Maximum video duration**: 3 hours
-- **Concurrent downloads**: 10 per instance
-- **Temporary file retention**: 1 hour
-
----
-
-## Changelog
-
-### v0.1.0 (Current)
-
-- Initial API release
-- Support for 20+ platforms
-- Audio and video download
-- Format conversion
-- Rate limiting
+That is convenient for development, but it is intentionally broad and may need tightening for stricter deployments.

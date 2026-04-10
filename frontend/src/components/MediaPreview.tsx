@@ -1,8 +1,8 @@
 import React from 'react';
-import { Card, CardContent, CardMedia, Typography, Box, Chip } from '@mui/material';
+import { Box, Stack, Typography } from '@mui/material';
+import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
+import VideoLibraryRoundedIcon from '@mui/icons-material/VideoLibraryRounded';
 import { ExtractResponse } from '../services/api';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import VideoLibraryIcon from '@mui/icons-material/VideoLibrary';
 
 interface MediaPreviewProps {
   media: ExtractResponse;
@@ -17,61 +17,72 @@ export const MediaPreview: React.FC<MediaPreviewProps> = ({ media }) => {
   };
 
   return (
-    <Card
+    <Box
+      className="result-card"
       sx={{
-        maxWidth: 700,
-        mx: 'auto',
-        borderRadius: 3,
         overflow: 'hidden',
-        border: '1px solid',
-        borderColor: 'divider',
-        boxShadow: 'none',
+        display: 'grid',
+        gridTemplateColumns: { xs: '1fr', sm: media.thumbnail ? '220px 1fr' : '1fr' },
       }}
     >
       {media.thumbnail && (
-        <CardMedia
-          component="img"
-          height="350"
-          image={media.thumbnail}
-          alt={media.title}
+        <Box
           sx={{
-            objectFit: 'cover',
-            bgcolor: 'grey.100',
+            minHeight: { xs: 220, sm: '100%' },
+            backgroundImage: `linear-gradient(180deg, rgba(20, 18, 21, 0.04), rgba(20, 18, 21, 0.58)), url(${media.thumbnail})`,
+            backgroundPosition: 'center',
+            backgroundSize: 'cover',
           }}
         />
       )}
-      <CardContent sx={{ p: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, flexWrap: 'wrap' }}>
-          <Chip
-            label={media.platform.toUpperCase()}
-            color="primary"
-            size="small"
-            sx={{ fontWeight: 600, borderRadius: 2 }}
-          />
-          {media.duration && (
-            <Chip
-              icon={<AccessTimeIcon fontSize="small" />}
-              label={formatDuration(media.duration)}
-              variant="outlined"
-              size="small"
-              sx={{ borderRadius: 2 }}
-            />
-          )}
-          <Chip
-            icon={<VideoLibraryIcon fontSize="small" />}
-            label={`${media.formats.length} formats`}
-            variant="outlined"
-            size="small"
-            sx={{ borderRadius: 2 }}
-          />
+
+      <Stack spacing={2} sx={{ p: { xs: 2.25, sm: 2.6 } }}>
+        <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+          <Box sx={chipSx(true)}>{media.platform.toUpperCase()}</Box>
+          <Box sx={chipSx()}>
+            <AccessTimeRoundedIcon sx={{ fontSize: 15 }} />
+            {formatDuration(media.duration)}
+          </Box>
+          <Box sx={chipSx()}>
+            <VideoLibraryRoundedIcon sx={{ fontSize: 15 }} />
+            {media.formats.length} formats
+          </Box>
+        </Stack>
+
+        <Box sx={{ textAlign: 'left' }}>
+          <Typography
+            sx={{
+              fontSize: { xs: '1.05rem', sm: '1.25rem' },
+              lineHeight: 1.3,
+              fontWeight: 500,
+              color: 'var(--text)',
+              mb: 0.8,
+              wordBreak: 'break-word',
+            }}
+          >
+            {media.title}
+          </Typography>
+          <Typography sx={{ fontSize: '.92rem', fontWeight: 300, color: 'var(--muted)' }}>
+            Выбери тип загрузки и формат. Весь блок оформлен в том же стиле, что и главный экран.
+          </Typography>
         </Box>
-        <Typography variant="h6" component="div" sx={{ fontWeight: 500, mb: 1 }}>
-          {media.title}
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Choose your preferred format and quality below
-        </Typography>
-      </CardContent>
-    </Card>
+      </Stack>
+    </Box>
   );
 };
+
+const chipSx = (accent = false) => ({
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '6px',
+  minHeight: 32,
+  px: 1.5,
+  py: 0.65,
+  borderRadius: '999px',
+  border: '1px solid',
+  borderColor: accent ? 'var(--primary)' : 'var(--border)',
+  background: accent ? 'color-mix(in srgb, var(--primary) 14%, transparent)' : 'var(--sv)',
+  color: accent ? 'var(--primary)' : 'var(--text)',
+  fontSize: '.76rem',
+  fontWeight: 400,
+});

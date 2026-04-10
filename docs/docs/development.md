@@ -1,535 +1,182 @@
 ---
-sidebar_position: 5
+sidebar_position: 7
 ---
 
 # Development Guide
 
-This guide will help you set up a development environment and contribute to Media Downloader.
+This guide is intentionally practical. It describes the repository as it exists now.
 
 ## Prerequisites
 
-- **Rust** 1.77+ with Cargo
-- **Node.js** 20+ with npm
-- **FFmpeg** installed and in PATH
-- **yt-dlp** installed and in PATH
-- **Git** for version control
+- Rust stable
+- Node.js 20+
+- npm
+- `ffmpeg`
+- `yt-dlp`
+- Git
 
-## Getting Started
+## Start The Project
 
-### 1. Clone the Repository
+### Interactive scripts
+
+From the repository root:
 
 ```bash
-git clone https://github.com/cryals/qruster.git
-cd qruster
+./scripts/setup.sh
+./scripts/run.sh
 ```
 
-### 2. Backend Setup
+### Manual backend start
 
 ```bash
 cd backend
-
-# Install dependencies and build
-cargo build
-
-# Run in development mode with hot reload
-cargo watch -x run
-
-# Or run directly
 cargo run
 ```
 
-Backend will start on `http://localhost:8080`
-
-### 3. Frontend Setup
+### Manual frontend start
 
 ```bash
 cd frontend
-
-# Install dependencies
-npm install
-
-# Run development server with hot reload
+npm ci
 npm run dev
-
-# Build for production
-npm run build
 ```
 
-Frontend will start on `http://localhost:3000`
+## Repository Layout
 
-## Project Structure
-
-```
+```text
 qruster/
-├── backend/              # Rust backend
+├── .github/
+│   └── workflows/
+├── backend/
 │   ├── src/
-│   │   ├── main.rs      # Entry point
-│   │   ├── handlers/    # HTTP handlers
-│   │   ├── extractors/  # Platform extractors
-│   │   └── services/    # Business logic
-│   ├── Cargo.toml       # Rust dependencies
-│   └── Dockerfile       # Backend container
-│
-├── frontend/            # React frontend
+│   │   ├── extractors/
+│   │   ├── handlers/
+│   │   ├── services/
+│   │   └── main.rs
+│   └── Cargo.toml
+├── docs/
+│   ├── docs/
+│   ├── i18n/ru/
+│   ├── docusaurus.config.ts
+│   └── package.json
+├── frontend/
+│   ├── public/
 │   ├── src/
-│   │   ├── App.tsx      # Main component
-│   │   ├── components/  # React components
-│   │   ├── services/    # API clients
-│   │   └── theme/       # MUI theme
-│   ├── package.json     # Node dependencies
-│   └── Dockerfile       # Frontend container
-│
-├── docs/                # Docusaurus documentation
-│   ├── docs/            # English docs
-│   ├── i18n/ru/         # Russian docs
-│   └── docusaurus.config.ts
-│
-├── scripts/             # Setup and run scripts
-│   ├── setup.sh
-│   ├── setup.bat
-│   ├── run.sh
-│   └── run.bat
-│
-├── docker-compose.yml   # Docker orchestration
-├── Caddyfile           # Reverse proxy config
-└── README.md           # Project overview
+│   │   ├── components/
+│   │   ├── services/
+│   │   ├── theme/
+│   │   ├── App.tsx
+│   │   └── main.tsx
+│   ├── index.html
+│   └── package.json
+├── scripts/
+├── docker-compose.yml
+├── Caddyfile
+└── README.md
 ```
 
-## Development Workflow
+## Frontend Development
 
-### Backend Development
+### Main responsibility split
 
-**Running Tests:**
-```bash
-cd backend
-cargo test
-```
+- `App.tsx`: page shell, theme toggle, top-level state, URL submit flow
+- `components/MediaPreview.tsx`: media summary card
+- `components/FormatSelector.tsx`: video/audio mode and format selection UI
+- `components/DownloadButton.tsx`: prepare-download flow and explicit final download link
+- `services/api.ts`: all HTTP calls to backend
 
-**Linting:**
-```bash
-cargo clippy -- -D warnings
-```
+### Frontend commands
 
-**Formatting:**
-```bash
-cargo fmt
-```
-
-**Adding a New Platform Extractor:**
-
-1. Create a new file in `backend/src/extractors/`:
-```rust
-// backend/src/extractors/newplatform.rs
-use super::{MediaExtractor, MediaInfo, Format};
-use anyhow::Result;
-
-pub struct NewPlatformExtractor;
-
-impl MediaExtractor for NewPlatformExtractor {
-    async fn extract(&self, url: &str) -> Result<MediaInfo> {
-        // Implementation
-        todo!()
-    }
-
-    fn supports(&self, url: &str) -> bool {
-        url.contains("newplatform.com")
-    }
-}
-```
-
-2. Register in `backend/src/extractors/mod.rs`:
-```rust
-mod newplatform;
-pub use newplatform::NewPlatformExtractor;
-
-// Add to detect_platform function
-pub fn detect_platform(url: &str) -> Box<dyn MediaExtractor> {
-    // ... existing platforms
-    if NewPlatformExtractor.supports(url) {
-        return Box::new(NewPlatformExtractor);
-    }
-    // ...
-}
-```
-
-### Frontend Development
-
-**Running Tests:**
 ```bash
 cd frontend
-npm test
-```
-
-**Linting:**
-```bash
+npm ci
+npm run dev
+npm run build
 npm run lint
 ```
 
-**Type Checking:**
-```bash
-npm run type-check
-```
+### Frontend notes
 
-**Adding a New Component:**
+- the current UI is custom styled inside `App.tsx`
+- MUI is still used for layout primitives, typography, collapse, alerts, and some icons
+- the landing page and result cards are intentionally kept in one visual style
 
-1. Create component file:
-```tsx
-// frontend/src/components/NewComponent.tsx
-import React from 'react';
-import { Box } from '@mui/material';
+## Backend Development
 
-interface NewComponentProps {
-  // props
-}
+### Main responsibility split
 
-export const NewComponent: React.FC<NewComponentProps> = (props) => {
-  return (
-    <Box>
-      {/* component content */}
-    </Box>
-  );
-};
-```
+- `main.rs`: router, CORS, temp dir, static `/downloads` serving
+- `handlers/extract.rs`: extract request validation and response shaping
+- `handlers/download.rs`: download request validation and mode selection
+- `handlers/formats.rs`: placeholder formats endpoint
+- `services/ytdlp.rs`: shell execution of `yt-dlp`
+- `services/downloader.rs`: temp file and output path handling
+- `extractors/*.rs`: platform-specific detection and extraction
 
-2. Export from index:
-```tsx
-// frontend/src/components/index.ts
-export { NewComponent } from './NewComponent';
-```
-
-## Code Style
-
-### Rust
-
-Follow the official [Rust Style Guide](https://doc.rust-lang.org/1.0.0/style/):
-
-- Use `snake_case` for functions and variables
-- Use `PascalCase` for types and traits
-- Use 4 spaces for indentation
-- Maximum line length: 100 characters
-- Always use `cargo fmt` before committing
-
-**Example:**
-```rust
-pub async fn extract_media_info(url: &str) -> Result<MediaInfo> {
-    let platform = detect_platform(url);
-    let info = platform.extract(url).await?;
-    Ok(info)
-}
-```
-
-### TypeScript/React
-
-Follow [Airbnb JavaScript Style Guide](https://github.com/airbnb/javascript):
-
-- Use `camelCase` for variables and functions
-- Use `PascalCase` for components and types
-- Use 2 spaces for indentation
-- Use functional components with hooks
-- Always use TypeScript types
-
-**Example:**
-```tsx
-interface MediaInfo {
-  title: string;
-  duration: number;
-}
-
-export const MediaPreview: React.FC<{ info: MediaInfo }> = ({ info }) => {
-  const [loading, setLoading] = useState(false);
-  
-  return (
-    <Box>
-      <Typography>{info.title}</Typography>
-    </Box>
-  );
-};
-```
-
-## Testing
-
-### Backend Tests
+### Backend commands
 
 ```bash
-# Run all tests
+cd backend
+cargo fmt -- --check
+cargo clippy -- -D warnings
 cargo test
-
-# Run specific test
-cargo test test_youtube_extractor
-
-# Run with output
-cargo test -- --nocapture
+cargo check
 ```
 
-**Example Test:**
-```rust
-#[cfg(test)]
-mod tests {
-    use super::*;
+### Extractor model
 
-    #[tokio::test]
-    async fn test_youtube_extractor() {
-        let extractor = YouTubeExtractor;
-        let url = "https://youtube.com/watch?v=dQw4w9WgXcQ";
-        
-        assert!(extractor.supports(url));
-        
-        let result = extractor.extract(url).await;
-        assert!(result.is_ok());
-    }
-}
-```
+To add a new extractor:
 
-### Frontend Tests
+1. create `backend/src/extractors/<platform>.rs`
+2. implement `MediaExtractor`
+3. register the module and add it to `detect_platform()`
+4. keep `generic::GenericExtractor` last, because it matches any HTTP/HTTPS URL
 
-```bash
-# Run all tests
-npm test
+## Docs Development
 
-# Run with coverage
-npm test -- --coverage
-
-# Run in watch mode
-npm test -- --watch
-```
-
-**Example Test:**
-```tsx
-import { render, screen } from '@testing-library/react';
-import { URLInput } from './URLInput';
-
-test('renders URL input field', () => {
-  render(<URLInput onSubmit={() => {}} />);
-  const input = screen.getByPlaceholderText(/enter url/i);
-  expect(input).toBeInTheDocument();
-});
-```
-
-## Debugging
-
-### Backend Debugging
-
-**Enable debug logging:**
-```bash
-RUST_LOG=debug cargo run
-```
-
-**Using rust-lldb:**
-```bash
-rust-lldb target/debug/backend
-```
-
-### Frontend Debugging
-
-**React DevTools:**
-- Install [React Developer Tools](https://react.dev/learn/react-developer-tools)
-- Open browser DevTools → React tab
-
-**Network Debugging:**
-- Open browser DevTools → Network tab
-- Filter by XHR to see API calls
-
-## Documentation
-
-### Backend Documentation
-
-Generate and view Rust docs:
-```bash
-cargo doc --open
-```
-
-### Frontend Documentation
-
-The frontend uses JSDoc comments:
-```tsx
-/**
- * Extract media information from URL
- * @param url - The media URL
- * @returns Promise with media info
- */
-export async function extractMedia(url: string): Promise<MediaInfo> {
-  // ...
-}
-```
-
-### Project Documentation
-
-Documentation is built with Docusaurus:
+### Commands
 
 ```bash
 cd docs
-
-# Install dependencies
-npm install
-
-# Start dev server
-npm start
-
-# Build for production
+npm ci
+npm run start
 npm run build
 ```
 
-## Git Workflow
+### Important note
 
-### Branch Naming
+The docs site now builds correctly after removing the incorrect `type: commonjs` setting from `docs/package.json`. Docusaurus generates ESM client modules, and that package setting was breaking the build pipeline.
 
-- `feature/` - New features
-- `fix/` - Bug fixes
-- `docs/` - Documentation updates
-- `refactor/` - Code refactoring
+## CI and GitHub Actions
 
-**Examples:**
-- `feature/add-instagram-support`
-- `fix/youtube-extraction-error`
-- `docs/update-api-reference`
+### Current workflows
 
-### Commit Messages
+- `.github/workflows/ci.yml`
+- `.github/workflows/docs.yml`
 
-Follow [Conventional Commits](https://www.conventionalcommits.org/):
+### CI behavior
 
-```
-<type>(<scope>): <description>
+`ci.yml` currently checks:
 
-[optional body]
+- backend formatting
+- backend clippy
+- backend tests
+- frontend install, lint, and build
+- Docker image build for backend and frontend
 
-[optional footer]
-```
+`docs.yml` currently:
 
-**Types:**
-- `feat` - New feature
-- `fix` - Bug fix
-- `docs` - Documentation
-- `style` - Formatting
-- `refactor` - Code refactoring
-- `test` - Tests
-- `chore` - Maintenance
+- installs docs dependencies
+- builds the Docusaurus site
+- uploads the Pages artifact
+- deploys to GitHub Pages
 
-**Examples:**
-```
-feat(extractors): add Instagram support
+## What Is Still Rough
 
-fix(download): handle timeout errors properly
+These are real development caveats, not theory:
 
-docs(api): update endpoint documentation
-```
-
-### Pull Request Process
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Write/update tests
-5. Run linters and tests
-6. Commit with conventional commits
-7. Push to your fork
-8. Open a pull request
-
-**PR Template:**
-```markdown
-## Description
-Brief description of changes
-
-## Type of Change
-- [ ] Bug fix
-- [ ] New feature
-- [ ] Documentation update
-
-## Testing
-How to test the changes
-
-## Checklist
-- [ ] Tests pass
-- [ ] Linters pass
-- [ ] Documentation updated
-```
-
-## Common Issues
-
-### Port Already in Use
-
-```bash
-# Find process
-lsof -i :8080
-lsof -i :3000
-
-# Kill process
-kill -9 <PID>
-```
-
-### Rust Compilation Errors
-
-```bash
-# Update Rust
-rustup update
-
-# Clean build
-cargo clean
-cargo build
-```
-
-### npm Install Fails
-
-```bash
-# Clear cache
-npm cache clean --force
-
-# Remove node_modules
-rm -rf node_modules package-lock.json
-npm install
-```
-
-## Performance Optimization
-
-### Backend
-
-- Use `cargo build --release` for production
-- Enable LTO in `Cargo.toml`:
-```toml
-[profile.release]
-lto = true
-codegen-units = 1
-```
-
-### Frontend
-
-- Use code splitting
-- Lazy load components
-- Optimize bundle size:
-```bash
-npm run build -- --analyze
-```
-
-## Security
-
-### Backend
-
-- Never log sensitive data
-- Validate all user input
-- Use prepared statements for SQL
-- Keep dependencies updated:
-```bash
-cargo audit
-```
-
-### Frontend
-
-- Sanitize user input
-- Use HTTPS in production
-- Keep dependencies updated:
-```bash
-npm audit
-npm audit fix
-```
-
-## Resources
-
-- [Rust Book](https://doc.rust-lang.org/book/)
-- [Axum Documentation](https://docs.rs/axum/)
-- [React Documentation](https://react.dev/)
-- [Material-UI Documentation](https://mui.com/)
-- [yt-dlp Documentation](https://github.com/yt-dlp/yt-dlp)
-
-## Getting Help
-
-- Open an issue on [GitHub](https://github.com/cryals/qruster/issues)
-- Check existing issues and discussions
+- there are no backend unit tests for most extractors yet
+- `GET /api/formats` is still not wired to real extracted formats
+- file cleanup exists in code but is not automatically scheduled
+- error status codes are simplified and mostly return `400`
+- several docs pages used to describe future ideas as current behavior; this has been corrected
