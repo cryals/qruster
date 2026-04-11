@@ -262,7 +262,7 @@ pub trait MediaExtractor: Send + Sync {
 В репозитории есть:
 
 - [`docker-compose.yml`](../../../../../docker-compose.yml)
-- `Caddyfile`
+- `Caddyfile.example`
 
 Основные Docker-сервисы:
 

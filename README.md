@@ -75,7 +75,7 @@ yt-to-mp3/
 ├── scripts/      # Setup and run scripts
 ├── .github/      # CI and Pages workflows
 ├── docker-compose.yml
-└── Caddyfile
+└── Caddyfile.example
 ```
 
 ## Documentation

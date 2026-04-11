@@ -71,7 +71,7 @@ qruster/
 │   └── package.json
 ├── scripts/
 ├── docker-compose.yml
-├── Caddyfile
+├── Caddyfile.example
 └── README.md
 ```
 

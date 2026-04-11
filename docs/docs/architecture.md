@@ -261,7 +261,7 @@ These are important because the docs should reflect reality:
 The repository includes:
 
 - [`docker-compose.yml`](../../docker-compose.yml)
-- `Caddyfile`
+- `Caddyfile.example`
 
 Default Docker services:
 
