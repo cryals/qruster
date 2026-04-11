@@ -2,6 +2,10 @@
 
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$REPO_ROOT"
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -24,6 +28,18 @@ print_error() {
 
 print_info() {
     echo -e "${BLUE}ℹ $1${NC}"
+}
+
+compose() {
+    if docker compose version &> /dev/null; then
+        docker compose "$@"
+    elif command -v docker-compose &> /dev/null && docker-compose version &> /dev/null; then
+        docker-compose "$@"
+    else
+        print_error "Docker Compose is not installed"
+        print_info "Install the Docker Compose plugin or the legacy docker-compose command."
+        exit 1
+    fi
 }
 
 if [ -f .env ]; then
@@ -71,12 +87,12 @@ elif [ "$RUN_CHOICE" = "2" ]; then
     fi
 
     print_info "Building and starting containers..."
-    docker compose up -d --build
+    compose up -d --build
 
     print_info "Waiting for services to be ready..."
     sleep 5
 
-    if docker compose ps | grep -q "Up"; then
+    if compose ps | grep -q "Up"; then
         print_success "Services started successfully!"
 
         if [ ! -z "$DOMAIN" ]; then
@@ -89,15 +105,15 @@ elif [ "$RUN_CHOICE" = "2" ]; then
         print_info "Stop services: docker compose down"
     else
         print_error "Failed to start services"
-        docker compose logs
+        compose logs
         exit 1
     fi
 
 elif [ "$RUN_CHOICE" = "3" ]; then
     print_header "Stopping Services"
 
-    if docker compose ps &> /dev/null; then
-        docker compose down
+    if compose ps &> /dev/null; then
+        compose down
         print_success "Docker services stopped"
     fi
 

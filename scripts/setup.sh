@@ -2,6 +2,10 @@
 
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$REPO_ROOT"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -42,7 +46,7 @@ detect_os() {
 }
 
 check_command() {
-    if command -v $1 &> /dev/null; then
+    if command -v "$1" &> /dev/null; then
         print_success "$1 is installed"
         return 0
     else
@@ -80,9 +84,14 @@ if check_command docker; then
     DOCKER_INSTALLED=true
 fi
 
-if check_command docker-compose || docker compose version &> /dev/null; then
+if docker compose version &> /dev/null; then
+    DOCKER_COMPOSE_INSTALLED=true
+    print_success "docker compose is installed"
+elif command -v docker-compose &> /dev/null && docker-compose version &> /dev/null; then
     DOCKER_COMPOSE_INSTALLED=true
     print_success "docker-compose is installed"
+else
+    print_warning "Docker Compose is not installed"
 fi
 
 if [ "$DOCKER_INSTALLED" = false ]; then
@@ -136,6 +145,12 @@ if [ "$MODE_CHOICE" = "1" ]; then
 
 elif [ "$MODE_CHOICE" = "2" ]; then
     print_header "Production Mode Setup"
+
+    if [ "$DOCKER_COMPOSE_INSTALLED" = false ]; then
+        print_error "Docker Compose is required for production mode"
+        print_info "Install the Docker Compose plugin or the legacy docker-compose command, then rerun setup."
+        exit 1
+    fi
 
     read -p "Enter your domain (e.g., media.example.com): " DOMAIN
 
