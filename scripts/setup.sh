@@ -164,6 +164,7 @@ elif [ "$MODE_CHOICE" = "2" ]; then
     cat > Caddyfile << EOF
 $DOMAIN {
     reverse_proxy /api/* backend:8080
+    reverse_proxy /downloads/* backend:8080
     reverse_proxy frontend:80
 }
 EOF

@@ -30,8 +30,7 @@ export const DownloadButton: React.FC<DownloadButtonProps> = ({ url, format, aud
       };
 
       const response = await api.download(request);
-      const baseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:8080';
-      setDownloadUrl(`${baseUrl}${response.download_url}`);
+      setDownloadUrl(response.download_url);
       setExpiresAt(response.expires_at);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Не удалось начать загрузку';
